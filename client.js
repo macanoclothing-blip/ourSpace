@@ -102,6 +102,21 @@ document.addEventListener("keyup", (event) => {
     else if (event.code == "KeyD") goingRight = false;
 });
 
+// gestione dello zoom
+const minZoom = 0.1, maxZoom = 4;
+const zoomSpeed = 0.035;
+window.addEventListener('wheel', (event) => {
+    event.preventDefault();
+    
+    if (event.deltaY > 0) {
+        camera.zoom *= (1 - zoomSpeed);
+    } else {
+        camera.zoom *= (1 + zoomSpeed);
+    }
+
+    camera.zoom = Math.min(Math.max(minZoom, camera.zoom), maxZoom);
+}, { passive: false });
+
 const characters = {
     normalGuy: drawNormalGuy,
 }
