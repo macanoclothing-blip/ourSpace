@@ -1,4 +1,4 @@
-const playgorund = document.getElementById('playground');
+const playground = document.getElementById('playground');
 const ctx = playground.getContext("2d");
 
 let screenW = 0, screenH = 0; // larghezza ed altezza del canvas
