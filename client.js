@@ -1,19 +1,28 @@
 const playgorund = document.getElementById('playground');
 const ctx = playground.getContext("2d");
 
-let W = 0, H = 0; // larghezza ed altezza del canvas
+let screenW = 0, screenH = 0; // larghezza ed altezza del canvas
+const worldW = 1000, worldH = 600; // larghezza ed altezza dello spazio di gioco
+const worldBounds = {
+    top: -worldH/2,
+    left: -worldW/2,
+    bottom: worldH/2,
+    right: worldW/2,
+};
+const camera = { x: 0, y: 0, zoom: 1.0 };
+
 function resize() {
-    W = window.innerWidth;
-    H = window.innerHeight;
-    playground.width = W;
-    playground.height = H;
+    screenW = window.innerWidth;
+    screenH = window.innerHeight;
+    playground.width = screenW;
+    playground.height = screenH;
 }
 resize();
 window.addEventListener('resize', resize);
 
 let me = {
-    x: W/2,
-    y: H/2,
+    x: 0,
+    y: 0,
     speed: 5,
     character: 'normalGuy'
 };
@@ -29,14 +38,36 @@ function draw() {
     if (goingDown) me.y += me.speed;
     if (goingRight) me.x += me.speed;
 
-    // pulisci lo sfondo
+    // controllo che il giocatore non esca dallo spazio di gioco
+    if (me.y - personH/2 < worldBounds.top) me.y = worldBounds.top + personH/2;
+    if (me.y + personH/2 > worldBounds.bottom) me.y = worldBounds.bottom - personH/2;
+    if (me.x - personW/2 < worldBounds.left) me.x = worldBounds.left + personW/2;
+    if (me.x + personW/2 > worldBounds.right) me.x = worldBounds.right - personW/2;
+
+    // la camera segue il giocatore
+    camera.x = me.x;
+    camera.y = me.y;
+
+    // pulisci lo schermo
     ctx.beginPath();
-    ctx.rect(0, 0, W, H);
-    ctx.fillStyle = "#58a515";
+    ctx.rect(0, 0, screenW, screenH);
+    ctx.fillStyle = "#000";
     ctx.fill();
 
-    others.forEach(p => drawPerson(p.x, p.y, personW, personH, p.character));
-    drawPerson(me.x, me.y, personW, personH, me.character);
+    ctx.save(); // sistema di coordinate world-space
+        ctx.translate(screenW/2, screenH/2); // centra lo schermo
+        ctx.scale(camera.zoom, camera.zoom); // applica lo zoom
+        ctx.translate(-camera.x, -camera.y); // sposta relativamente alla camera
+
+        // disegna lo sfondo del "mondo" (campo da gioco)
+        ctx.beginPath();
+        ctx.rect(worldBounds.left, worldBounds.top, worldW, worldH);
+        ctx.fillStyle = "#58a515";
+        ctx.fill();
+
+        others.forEach(p => drawPerson(p.x, p.y, personW, personH, p.character));
+        drawPerson(me.x, me.y, personW, personH, me.character);
+    ctx.restore();
 
     requestAnimationFrame(draw);
 }
