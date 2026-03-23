@@ -1,6 +1,8 @@
 const playground = document.getElementById('playground');
 const ctx = playground.getContext("2d");
 
+const mod = (n, m) => ((n % m) + m) % m;
+
 let screenW = 0, screenH = 0; // larghezza ed altezza del canvas
 const worldW = 1000, worldH = 600; // larghezza ed altezza dello spazio di gioco
 const worldBounds = {
@@ -20,55 +22,168 @@ function resize() {
 resize();
 window.addEventListener('resize', resize);
 
-let me = {
-    x: 0,
-    y: 0,
-    speed: 5,
-    character: 'normalGuy'
-};
-let others = []; // TODO riempire con i dati che arrivano dal server
+let me = null;
+let people = []; // TODO riempire con i dati che arrivano dal server
 
 const personW = 40;
 const personH = 120;
 
-function draw() {
-    // gestione movimento
-    if (goingUp) me.y -= me.speed;
-    if (goingLeft) me.x -= me.speed;
-    if (goingDown) me.y += me.speed;
-    if (goingRight) me.x += me.speed;
+function createButton(text, onclick) {
+    // +state
+    let rect = { x: 0, y: 0, w: 0, h: 0 };
+    let isPressed = false;
+    // -state
 
-    // controllo che il giocatore non esca dallo spazio di gioco
-    if (me.y - personH/2 < worldBounds.top) me.y = worldBounds.top + personH/2;
-    if (me.y + personH/2 > worldBounds.bottom) me.y = worldBounds.bottom - personH/2;
-    if (me.x - personW/2 < worldBounds.left) me.x = worldBounds.left + personW/2;
-    if (me.x + personW/2 > worldBounds.right) me.x = worldBounds.right - personW/2;
+    // +click_handling
+    const getPointerPos = (e) => {
+        const bounds = playground.getBoundingClientRect();
+        return {
+            x: e.clientX - bounds.left - screenW/2,
+            y: e.clientY - bounds.top - screenH/2
+        };
+    };
+    const isInside = (pos) => {
+        return pos.x >= rect.x && pos.x <= rect.x + rect.w &&
+               pos.y >= rect.y && pos.y <= rect.y + rect.h;
+    };
+    playground.addEventListener('pointerdown', (e) => {
+        if (isInside(getPointerPos(e))) {
+            isPressed = true;
+        }
+    });
+    playground.addEventListener('pointerup', (e) => {
+        if (isPressed && isInside(getPointerPos(e))) {
+            onclick();
+        }
+        isPressed = false;
+    });
+    playground.addEventListener('pointercancel', () => isPressed = false);
+    window.addEventListener('pointerup', () => isPressed = false);
+    // -click_handling
 
-    // la camera segue il giocatore
-    camera.x = me.x;
-    camera.y = me.y;
+    const drawButton = (newRect, ctx) => {
+        rect = newRect; 
 
-    // pulisci lo schermo
-    ctx.beginPath();
-    ctx.rect(0, 0, screenW, screenH);
-    ctx.fillStyle = "#000";
-    ctx.fill();
+        const { x, y, w, h } = rect;
+        const shadowOffset = Math.min(w, h) * 0.07;
+        const pushOffset = isPressed ? shadowOffset * 0.5 : 0;
 
-    ctx.save(); // sistema di coordinate world-space
-        ctx.translate(screenW/2, screenH/2); // centra lo schermo
-        ctx.scale(camera.zoom, camera.zoom); // applica lo zoom
-        ctx.translate(-camera.x, -camera.y); // sposta relativamente alla camera
-
-        // disegna lo sfondo del "mondo" (campo da gioco)
+        // ombra
         ctx.beginPath();
-        ctx.rect(worldBounds.left, worldBounds.top, worldW, worldH);
-        ctx.fillStyle = "#58a515";
+        ctx.rect(x + shadowOffset, y + shadowOffset, w, h);
+        ctx.fillStyle = "#161616";
         ctx.fill();
 
-        others.forEach(p => drawPerson(p.x, p.y, personW, personH, p.character));
-        drawPerson(me.x, me.y, personW, personH, me.character);
-    ctx.restore();
+        // bottone
+        ctx.beginPath();
+        ctx.rect(x + pushOffset, y + pushOffset, w, h);
+        ctx.fillStyle = "#d18800";
+        ctx.fill();
 
+        // testo
+        ctx.fillStyle = "#e6e6e6";
+        ctx.font = `bold ${Math.floor(Math.min(w, h) * 0.5)}px Arial`;
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        ctx.fillText(text, x + w / 2 + pushOffset, y + h / 2 + pushOffset);
+    }
+
+    return drawButton;
+}
+
+
+const characters = {
+    normalGuy: drawNormalGuy,
+    rect: drawRect,
+}
+const characterNames = Object.keys(characters);
+let selectedCharacterIdx = 0;
+
+const leftArrow = createButton('<', () => {
+    selectedCharacterIdx = mod(selectedCharacterIdx + 1, characterNames.length);
+});
+const rightArrow = createButton('>', () => {
+    selectedCharacterIdx = mod(selectedCharacterIdx - 1, characterNames.length);
+});
+const okBtn = createButton('ok', () => {
+    me = {
+        x: 0,
+        y: 0,
+        speed: 5,
+        character: characterNames[selectedCharacterIdx],
+    };
+});
+
+
+function draw() {
+    if (me) {
+        // gestione movimento
+        if (goingUp) me.y -= me.speed;
+        if (goingLeft) me.x -= me.speed;
+        if (goingDown) me.y += me.speed;
+        if (goingRight) me.x += me.speed;
+
+        // controllo che il giocatore non esca dallo spazio di gioco
+        if (me.y - personH/2 < worldBounds.top) me.y = worldBounds.top + personH/2;
+        if (me.y + personH/2 > worldBounds.bottom) me.y = worldBounds.bottom - personH/2;
+        if (me.x - personW/2 < worldBounds.left) me.x = worldBounds.left + personW/2;
+        if (me.x + personW/2 > worldBounds.right) me.x = worldBounds.right - personW/2;
+
+        // la camera segue il giocatore
+        camera.x = me.x;
+        camera.y = me.y;
+
+        // pulisci lo schermo
+        ctx.beginPath();
+        ctx.rect(0, 0, screenW, screenH);
+        ctx.fillStyle = "#000";
+        ctx.fill();
+
+        ctx.save(); // sistema di coordinate world-space
+            ctx.translate(screenW/2, screenH/2); // centra lo schermo
+            ctx.scale(camera.zoom, camera.zoom); // applica lo zoom
+            ctx.translate(-camera.x, -camera.y); // sposta relativamente alla camera
+
+            // disegna lo sfondo del "mondo" (campo da gioco)
+            ctx.beginPath();
+            ctx.rect(worldBounds.left, worldBounds.top, worldW, worldH);
+            ctx.fillStyle = "#58a515";
+            ctx.fill();
+
+            if (me) drawPerson(me.x, me.y, personW, personH, me.character);
+        ctx.restore();
+    } else {
+        let side = Math.min(screenH, screenW);
+        ctx.save();
+            ctx.translate(screenW/2, screenH/2); // centra lo schermo
+
+            const borderWidth = 20;
+            ctx.beginPath();
+            ctx.rect(-side/2, -side/2, side, side);
+            ctx.clip();
+            ctx.strokeStyle = "#161616";
+            ctx.lineWidth = borderWidth;
+            ctx.fillStyle = "#fafafa";
+            ctx.fill();
+            ctx.stroke();
+
+            const btnWidth = side * 0.1;
+            const btnHeight = side  * 0.4;
+            const btnSpacing = borderWidth + 5;
+            rightArrow({ x: side/2 - btnWidth - btnSpacing, y: -btnHeight/2, w: btnWidth, h: btnHeight }, ctx);
+            leftArrow({ x: -side/2 + btnSpacing, y: -btnHeight/2, w: btnWidth, h: btnHeight }, ctx);
+
+            const characterName = characterNames[selectedCharacterIdx];
+            const characterH = side * 0.7;
+            const characterW = characterH * personW / personH;
+            drawPerson(0, -side*0.1, characterW, characterH, characterName);
+
+            const okBtnW = side * 0.4;
+            const okBtnH = side * 0.1;
+            okBtn({ x: -okBtnW/2, y: side/2 - okBtnH - side*0.1, w: okBtnW, h: okBtnH }, ctx);
+
+        ctx.restore();
+    }
     requestAnimationFrame(draw);
 }
 requestAnimationFrame(draw);
@@ -116,10 +231,6 @@ window.addEventListener('wheel', (event) => {
 
     camera.zoom = Math.min(Math.max(minZoom, camera.zoom), maxZoom);
 }, { passive: false });
-
-const characters = {
-    normalGuy: drawNormalGuy,
-}
 
 function drawNormalGuy(x, y, w, h, style = {}) {
     ctx.save();
@@ -171,13 +282,27 @@ function drawNormalGuy(x, y, w, h, style = {}) {
     // -legs
 
     // +bounding box
-    ctx.beginPath();
-    ctx.rect(startX, startY, w, h);
-    ctx.strokeStyle = "#f620ef";
-    ctx.stroke();
+    // ctx.beginPath();
+    // ctx.rect(startX, startY, w, h);
+    // ctx.lineWidth = 1;
+    // ctx.strokeStyle = "#f620ef";
+    // ctx.stroke();
     /*
     */
     // -bounding box
 
+    ctx.restore();
+}
+
+
+function drawRect(x, y, w, h, style = {}) {
+    ctx.save();
+    ctx.translate(x, y);
+    const startX = -w/2;
+    const startY = -h/2;
+    ctx.beginPath();
+    ctx.fillStyle = style.skinColor || "#eaa66e";
+    ctx.rect(startX, startY, w, h);
+    ctx.fill();
     ctx.restore();
 }
