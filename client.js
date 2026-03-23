@@ -103,13 +103,13 @@ const characters = {
 const characterNames = Object.keys(characters);
 let selectedCharacterIdx = 0;
 
-const leftArrow = createButton('<', () => {
+const drawLeftBtn = createButton('<', () => {
     selectedCharacterIdx = mod(selectedCharacterIdx + 1, characterNames.length);
 });
-const rightArrow = createButton('>', () => {
+const drawRightBtn = createButton('>', () => {
     selectedCharacterIdx = mod(selectedCharacterIdx - 1, characterNames.length);
 });
-const okBtn = createButton('ok', () => {
+const drawOkBtn = createButton('ok', () => {
     me = {
         x: 0,
         y: 0,
@@ -174,8 +174,8 @@ function draw() {
             const btnWidth = side * 0.1;
             const btnHeight = side  * 0.4;
             const btnSpacing = borderWidth + 5;
-            rightArrow({ x: side/2 - btnWidth - btnSpacing, y: -btnHeight/2, w: btnWidth, h: btnHeight }, ctx);
-            leftArrow({ x: -side/2 + btnSpacing, y: -btnHeight/2, w: btnWidth, h: btnHeight }, ctx);
+            drawRightBtn({ x: side/2 - btnWidth - btnSpacing, y: -btnHeight/2, w: btnWidth, h: btnHeight }, ctx);
+            drawLeftBtn({ x: -side/2 + btnSpacing, y: -btnHeight/2, w: btnWidth, h: btnHeight }, ctx);
 
             const characterName = characterNames[selectedCharacterIdx];
             const characterH = side * 0.7;
@@ -184,7 +184,7 @@ function draw() {
 
             const okBtnW = side * 0.4;
             const okBtnH = side * 0.1;
-            okBtn({ x: -okBtnW/2, y: side/2 - okBtnH - side*0.1, w: okBtnW, h: okBtnH }, ctx);
+            drawOkBtn({ x: -okBtnW/2, y: side/2 - okBtnH - side*0.1, w: okBtnW, h: okBtnH }, ctx);
 
         ctx.restore();
     }
