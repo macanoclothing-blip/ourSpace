@@ -28,7 +28,7 @@ let people = []; // TODO riempire con i dati che arrivano dal server
 const personW = 40;
 const personH = 120;
 
-function createButton(text, onclick) {
+function createButton(text, onclick, colors = {}) {
     // +state
     let rect = { x: 0, y: 0, w: 0, h: 0 };
     let isPressed = false;
@@ -64,6 +64,10 @@ function createButton(text, onclick) {
     const drawButton = (newRect, ctx) => {
         rect = newRect; 
 
+        const mainColor = colors.main || "#d18800";
+        const textColor = colors.text || "#e6e6e6";
+        const shadowColor = colors.shadow || "#161616";
+
         const { x, y, w, h } = rect;
         const shadowOffset = Math.min(w, h) * 0.07;
         const pushOffset = isPressed ? shadowOffset * 0.5 : 0;
@@ -71,17 +75,17 @@ function createButton(text, onclick) {
         // ombra
         ctx.beginPath();
         ctx.rect(x + shadowOffset, y + shadowOffset, w, h);
-        ctx.fillStyle = "#161616";
+        ctx.fillStyle = shadowColor;
         ctx.fill();
 
         // bottone
         ctx.beginPath();
         ctx.rect(x + pushOffset, y + pushOffset, w, h);
-        ctx.fillStyle = "#d18800";
+        ctx.fillStyle = mainColor;
         ctx.fill();
 
         // testo
-        ctx.fillStyle = "#e6e6e6";
+        ctx.fillStyle = textColor;
         ctx.font = `bold ${Math.floor(Math.min(w, h) * 0.5)}px Arial`;
         ctx.textAlign = "center";
         ctx.textBaseline = "middle";
@@ -112,7 +116,7 @@ const okBtn = createButton('ok', () => {
         speed: 5,
         character: characterNames[selectedCharacterIdx],
     };
-});
+}, { main: "#58a515" });
 
 
 function draw() {
