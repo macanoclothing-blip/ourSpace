@@ -1307,3 +1307,157 @@ function drawPersona2(x, y, w, h, style = {}) {
 
     ctx.restore();
 }
+
+
+function drawClashRoyaleKnight(x, y, w, h, style = {}) {
+    ctx.save();
+
+    // move origin (x=0, y=0) to the person center
+    ctx.translate(x, y);
+    const startX = -w/2;
+    const startY = -h/2;
+
+    // +head (Elmo rosso)
+    const headH = h * 0.3;
+
+    // Viso
+    ctx.beginPath();
+    ctx.fillStyle = "#d4a574"; // pelle
+    ctx.rect(startX, startY + headH*0.4, w, headH*0.6);
+    ctx.fill();
+
+    // Elmo rosso
+    ctx.beginPath();
+    ctx.fillStyle = "#e32f2f"; // rosso brillante
+    ctx.rect(startX, startY, w, headH*0.5);
+    ctx.fill();
+
+    // Visiera dorata
+    ctx.beginPath();
+    ctx.fillStyle = "#ffd700";
+    ctx.rect(startX, startY + headH*0.35, w, headH*0.15);
+    ctx.fill();
+
+    // Occhi (sfondo scuro)
+    ctx.beginPath();
+    ctx.fillStyle = "#000000";
+    const eyeW = w * 0.12;
+    const eyeH = w * 0.1;
+    ctx.rect(startX + w*0.2, startY + headH*0.5, eyeW, eyeH);
+    ctx.rect(startX + w*0.68, startY + headH*0.5, eyeW, eyeH);
+    ctx.fill();
+
+    // Bocca
+    ctx.beginPath();
+    ctx.strokeStyle = "#000000";
+    ctx.lineWidth = 1;
+    ctx.moveTo(startX + w*0.25, startY + headH*0.75);
+    ctx.lineTo(startX + w*0.75, startY + headH*0.75);
+    ctx.stroke();
+    // -head
+
+    // +body (Armatura grigia/nera)
+    const bodyStartY = startY + headH;
+    const bodyH = h * 0.35;
+    const armLen = 0.4 * w;
+
+    // Corpo armatura
+    ctx.beginPath();
+    ctx.fillStyle = "#4a4a4a"; // grigio scuro armatura
+    ctx.rect(startX, bodyStartY, w, bodyH);
+    ctx.fill();
+
+    // Dettagli armatura (crocchia)
+    ctx.beginPath();
+    ctx.strokeStyle = "#2a2a2a";
+    ctx.lineWidth = 2;
+    ctx.moveTo(startX + w*0.25, bodyStartY);
+    ctx.lineTo(startX + w*0.25, bodyStartY + bodyH);
+    ctx.moveTo(startX + w*0.75, bodyStartY);
+    ctx.lineTo(startX + w*0.75, bodyStartY + bodyH);
+    ctx.stroke();
+
+    // Braccia con armatura
+    ctx.beginPath();
+    ctx.fillStyle = "#4a4a4a";
+    ctx.rect(startX - armLen, bodyStartY + 5, armLen - 5, 0.4*bodyH);
+    ctx.rect(startX + w + 5, bodyStartY + 5, armLen - 5, 0.4*bodyH);
+    ctx.fill();
+
+    // Guanti scuri
+    ctx.beginPath();
+    ctx.fillStyle = "#1a1a1a";
+    ctx.arc(startX - armLen + 3, bodyStartY + 0.2*bodyH, 5, 0, Math.PI * 2);
+    ctx.arc(startX + w + armLen - 3, bodyStartY + 0.2*bodyH, 5, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Scudo sulla sinistra
+    ctx.beginPath();
+    ctx.fillStyle = "#3a3a3a";
+    ctx.rect(startX - armLen - 8, bodyStartY, 10, 0.6*bodyH);
+    ctx.fill();
+    
+    ctx.beginPath();
+    ctx.fillStyle = "#ffd700";
+    ctx.rect(startX - armLen - 6, bodyStartY + 5, 6, 0.5*bodyH);
+    ctx.fill();
+
+    // Spada sulla destra
+    ctx.beginPath();
+    ctx.strokeStyle = "#c0c0c0";
+    ctx.lineWidth = 3;
+    ctx.moveTo(startX + w + armLen, bodyStartY);
+    ctx.lineTo(startX + w + armLen + 5, bodyStartY - 15);
+    ctx.stroke();
+
+    // Punta spada
+    ctx.beginPath();
+    ctx.fillStyle = "#c0c0c0";
+    ctx.moveTo(startX + w + armLen + 5, bodyStartY - 15);
+    ctx.lineTo(startX + w + armLen + 8, bodyStartY - 25);
+    ctx.lineTo(startX + w + armLen + 2, bodyStartY - 18);
+    ctx.fill();
+    // -body
+
+    // +legs (Armatura e stivali)
+    const legH = h - headH - bodyH;
+    const legStartY = bodyStartY + bodyH;
+    const legW = w * 0.35;
+
+    // Pantaloni armatura
+    ctx.beginPath();
+    ctx.fillStyle = "#4a4a4a";
+    ctx.rect(startX, legStartY, legW, legH*0.7); // sinistra
+    ctx.rect(startX + w - legW, legStartY, legW, legH*0.7); // destra
+    ctx.fill();
+
+    // Unione pantaloni
+    ctx.beginPath();
+    ctx.fillStyle = "#4a4a4a";
+    ctx.rect(startX, legStartY, w, legH*0.2);
+    ctx.fill();
+
+    // Stivali neri
+    ctx.beginPath();
+    ctx.fillStyle = "#1a1a1a";
+    ctx.rect(startX, legStartY + legH*0.7, legW, legH*0.3);
+    ctx.rect(startX + w - legW, legStartY + legH*0.7, legW, legH*0.3);
+    ctx.fill();
+
+    // Dettagli stivali (dorature)
+    ctx.beginPath();
+    ctx.fillStyle = "#ffd700";
+    ctx.rect(startX + 3, legStartY + legH*0.75, legW - 6, 3);
+    ctx.rect(startX + w - legW + 3, legStartY + legH*0.75, legW - 6, 3);
+    ctx.fill();
+    // -legs
+
+    // +bounding box
+    ctx.beginPath();
+    ctx.rect(startX, startY, w, h);
+    ctx.strokeStyle = "#f620ef";
+    ctx.stroke();
+    // -bounding box
+
+    ctx.restore();
+}
