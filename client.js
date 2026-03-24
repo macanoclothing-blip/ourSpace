@@ -706,3 +706,89 @@ function drawPersonaggio8(x, y, w, h, style = {}) {
 
     ctx.restore();
 }
+
+
+function drawPersona15(x, y, w, h, style = {}) {
+    ctx.save();
+
+    // origine al centro del personaggio
+    ctx.translate(x, y);
+    const startX = -w/2;
+    const startY = -h/2;
+
+    // +HEAD
+    const headH = h*0.3;
+
+    // testa
+    ctx.beginPath();
+    ctx.fillStyle = style.skinColor || "#eaa66e";
+    ctx.rect(startX, startY, w, headH);
+    ctx.fill();
+
+    // capelli neri
+    ctx.beginPath();
+    ctx.fillStyle = "#151514";
+    ctx.rect(startX, startY + headH*0.5, w, headH*0.5);
+    ctx.fill();
+
+    // cappello cowboy
+    ctx.beginPath();
+    ctx.fillStyle = "#8b5a2b"; // marrone
+    ctx.rect(startX - w * 0.1, startY - headH*0.2, w*1.2, headH*0.3); // tesa
+    ctx.fill();
+
+    ctx.beginPath();
+    ctx.fillStyle = "#654321"; // corona cappello
+    ctx.rect(startX+w*0.2, startY-headH*0.25, w*0.6, headH*0.25);
+    ctx.fill();
+    // -HEAD
+
+    // +BODY
+    const bodyStartY = startY+headH;
+    const bodyH = h*0.35;
+    const armLen = 0.4*w;
+
+    // camicia cowboy
+    ctx.beginPath();
+    ctx.fillStyle = "#a0522d"; // marrone chiaro
+    ctx.rect(startX, bodyStartY, w, bodyH);
+    ctx.rect(startX-armLen, bodyStartY, armLen, 0.35*bodyH);
+    ctx.rect(startX+w, bodyStartY, armLen, 0.35*bodyH);
+    ctx.fill();
+
+    // cintura
+    ctx.beginPath();
+    ctx.fillStyle = "#3e2723";
+    ctx.rect(startX, bodyStartY+bodyH*0.7, w, bodyH*0.15);
+    ctx.fill();
+    // -BODY
+
+    // +LEGS
+    const legH = h-headH-bodyH;
+    const legStartY = bodyStartY+bodyH;
+    const legW = w*0.35;
+
+    ctx.beginPath();
+    ctx.fillStyle = "#4b3621"; // pantaloni scuri
+    ctx.rect(startX, legStartY, w, legH/3); // top
+    ctx.rect(startX, legStartY, legW, legH); // left leg
+    ctx.rect(startX+w-legW, legStartY, legW, legH); // right leg
+    ctx.fill();
+
+    // stivali
+    ctx.beginPath();
+    ctx.fillStyle = "#2f1b0e";
+    ctx.rect(startX, legStartY + legH*0.8, legW, legH*0.2);
+    ctx.rect(startX+w-legW, legStartY + legH*0.8, legW, legH*0.2);
+    ctx.fill();
+    // -LEGS
+
+    // +BOUNDING BOX
+    ctx.beginPath();
+    ctx.rect(startX, startY, w, h);
+    ctx.strokeStyle = "#f620ef";
+    ctx.stroke();
+    // -BOUNDING BOX
+
+    ctx.restore();
+}
