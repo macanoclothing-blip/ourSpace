@@ -181,3 +181,117 @@ function drawNormalGuy(x, y, w, h, style = {}) {
 
     ctx.restore();
 }
+
+function drawPersonaggio10(x, y, w, h, style = {}) {
+    ctx.save();
+
+    ctx.translate(x, y);
+    const startX = -w / 2;
+    const startY = -h / 2;
+
+    const headH = h * 0.34;
+    const bodyH = h * 0.36;
+    const legH = h - headH - bodyH;
+
+    const headW = w * 0.92;
+    const bodyW = w * 0.82;
+    const eyeW = w * 0.12;
+    const eyeH = h * 0.09;
+    const armW = w * 0.18;
+    const armH = h * 0.1;
+
+    const alienRed = style.mainColor || "#d61f2d";
+    const alienDark = style.shadowColor || "#7c0e16";
+    const alienLight = style.highlightColor || "#ff6b6b";
+    const alienEye = "#dff8ff";
+    const pupil = "#0b1a1d";
+
+    const headCx = 0;
+    const headCy = startY + headH * 0.48;
+
+    ctx.fillStyle = alienDark;
+    ctx.beginPath();
+    ctx.ellipse(headCx - w * 0.18, startY - h * 0.06, w * 0.06, h * 0.16, -0.45, 0, Math.PI * 2);
+    ctx.ellipse(headCx + w * 0.18, startY - h * 0.06, w * 0.06, h * 0.16, 0.45, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.strokeStyle = alienDark;
+    ctx.lineWidth = Math.max(2, Math.min(w, h) * 0.06);
+    ctx.lineCap = "round";
+    ctx.beginPath();
+    ctx.moveTo(headCx - w * 0.12, startY - h * 0.01);
+    ctx.quadraticCurveTo(headCx - w * 0.26, startY - h * 0.18, headCx - w * 0.31, startY - h * 0.3);
+    ctx.moveTo(headCx + w * 0.12, startY - h * 0.01);
+    ctx.quadraticCurveTo(headCx + w * 0.26, startY - h * 0.18, headCx + w * 0.31, startY - h * 0.3);
+    ctx.stroke();
+
+    ctx.fillStyle = alienRed;
+    ctx.beginPath();
+    ctx.ellipse(headCx, headCy, headW / 2, headH / 2, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.fillStyle = alienLight;
+    ctx.beginPath();
+    ctx.ellipse(headCx - w * 0.12, headCy - h * 0.06, w * 0.14, h * 0.1, -0.35, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.fillStyle = alienEye;
+    ctx.beginPath();
+    ctx.ellipse(headCx - w * 0.18, headCy - h * 0.02, eyeW, eyeH, -0.15, 0, Math.PI * 2);
+    ctx.ellipse(headCx + w * 0.18, headCy - h * 0.02, eyeW, eyeH, 0.15, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.fillStyle = pupil;
+    ctx.beginPath();
+    ctx.ellipse(headCx - w * 0.16, headCy - h * 0.01, eyeW * 0.35, eyeH * 0.5, -0.08, 0, Math.PI * 2);
+    ctx.ellipse(headCx + w * 0.16, headCy - h * 0.01, eyeW * 0.35, eyeH * 0.5, 0.08, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.fillStyle = alienDark;
+    ctx.beginPath();
+    ctx.ellipse(headCx, headCy + h * 0.1, w * 0.08, h * 0.028, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+    const bodyTop = startY + headH * 0.8;
+    ctx.fillStyle = alienRed;
+    ctx.beginPath();
+    ctx.ellipse(0, bodyTop + bodyH * 0.48, bodyW / 2, bodyH / 2, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.fillStyle = alienDark;
+    ctx.beginPath();
+    ctx.ellipse(-w * 0.5, bodyTop + bodyH * 0.4, armW, armH, -0.35, 0, Math.PI * 2);
+    ctx.ellipse(w * 0.5, bodyTop + bodyH * 0.4, armW, armH, 0.35, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.fillStyle = alienRed;
+    ctx.beginPath();
+    ctx.ellipse(-w * 0.55, bodyTop + bodyH * 0.42, armW * 0.72, armH * 0.72, -0.1, 0, Math.PI * 2);
+    ctx.ellipse(w * 0.55, bodyTop + bodyH * 0.42, armW * 0.72, armH * 0.72, 0.1, 0, Math.PI * 2);
+    ctx.fill();
+
+    const legTop = bodyTop + bodyH * 0.8;
+    const legW = w * 0.22;
+    const footW = w * 0.16;
+    const footH = h * 0.06;
+
+    ctx.fillStyle = alienDark;
+    ctx.beginPath();
+    ctx.ellipse(-w * 0.17, legTop + legH * 0.46, legW, legH * 0.52, 0.05, 0, Math.PI * 2);
+    ctx.ellipse(w * 0.17, legTop + legH * 0.46, legW, legH * 0.52, -0.05, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.fillStyle = alienRed;
+    ctx.beginPath();
+    ctx.ellipse(-w * 0.19, legTop + legH * 0.42, legW * 0.75, legH * 0.42, 0.05, 0, Math.PI * 2);
+    ctx.ellipse(w * 0.19, legTop + legH * 0.42, legW * 0.75, legH * 0.42, -0.05, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.fillStyle = alienDark;
+    ctx.beginPath();
+    ctx.ellipse(-w * 0.2, startY + h * 0.49, footW, footH, 0, 0, Math.PI * 2);
+    ctx.ellipse(w * 0.2, startY + h * 0.49, footW, footH, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.restore();
+}
