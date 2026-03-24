@@ -12,10 +12,10 @@ resize();
 window.addEventListener('resize', resize);
 
 let me = {
-    x: W/2,
-    y: H/2,
+    x: W / 2,
+    y: H / 2,
     speed: 5,
-    character: 'normalGuy'
+    character: 'normalGuy'  
 };
 let others = []; // TODO riempire con i dati che arrivano dal server
 
@@ -72,8 +72,8 @@ document.addEventListener("keyup", (event) => {
 });
 
 const characters = {
-    normalGuy: drawNormalGuy,
-}
+    normalGuy: drawNormalGuy
+};
 
 function drawNormalGuy(x, y, w, h, style = {}) {
     ctx.save();
@@ -132,6 +132,207 @@ function drawNormalGuy(x, y, w, h, style = {}) {
     /*
     */
     // -bounding box
+
+    ctx.restore();
+}
+
+function drawPersona7(x, y, w, h, style = {}) {
+    ctx.save();
+    ctx.translate(x, y);
+
+    const startX = -w / 2;
+    const startY = -h / 2;
+
+    // pulsazione neon
+    const time = Date.now() / 1000;
+    const glow = 0.5 + 0.5 * Math.sin(time * 3);
+    const neon = `rgba(0, 255, 200, ${0.6 + 0.4 * glow})`;
+    const neonSolid = "#00ffc8";
+    const darkBase = "#0f0f23";
+    const darkMid = "#16213e";
+    const darkHood = "#1a1a2e";
+
+    // ombra a terra
+    ctx.beginPath();
+    ctx.ellipse(0, startY + h + 4, w * 0.7, 6, 0, 0, Math.PI * 2);
+    ctx.fillStyle = `rgba(0, 255, 200, ${0.15 + 0.1 * glow})`;
+    ctx.fill();
+
+    // === SCIARPA / MANTELLO che pende dietro ===
+    ctx.beginPath();
+    ctx.fillStyle = "#2d1b4e";
+    ctx.moveTo(startX + w * 0.2, startY + h * 0.28);
+    ctx.lineTo(startX - w * 0.15, startY + h * 0.75);
+    ctx.lineTo(startX + w * 0.05, startY + h * 0.7);
+    ctx.lineTo(startX + w * 0.35, startY + h * 0.32);
+    ctx.closePath();
+    ctx.fill();
+
+    // === TESTA - CAPPUCCIO ===
+    const headH = h * 0.28;
+
+    // cappuccio (triangolo arrotondato)
+    ctx.beginPath();
+    ctx.moveTo(startX - 6, startY + headH + 2);
+    ctx.quadraticCurveTo(startX + w / 2, startY - 18, startX + w + 6, startY + headH + 2);
+    ctx.closePath();
+    ctx.fillStyle = darkHood;
+    ctx.fill();
+
+    // visiera / maschera
+    ctx.beginPath();
+    ctx.roundRect(startX + w * 0.08, startY + headH * 0.3, w * 0.84, headH * 0.5, 4);
+    ctx.fillStyle = darkBase;
+    ctx.fill();
+
+    // occhi luminosi
+    const eyeY = startY + headH * 0.52;
+    const eyeW = w * 0.14;
+    const eyeH = w * 0.06;
+
+    ctx.shadowColor = neonSolid;
+    ctx.shadowBlur = 15 + 8 * glow;
+
+    // occhio sinistro
+    ctx.beginPath();
+    ctx.ellipse(startX + w * 0.3, eyeY, eyeW, eyeH, -0.15, 0, Math.PI * 2);
+    ctx.fillStyle = neonSolid;
+    ctx.fill();
+
+    // occhio destro
+    ctx.beginPath();
+    ctx.ellipse(startX + w * 0.7, eyeY, eyeW, eyeH, 0.15, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.shadowBlur = 0;
+
+    // === CORPO CORAZZATO ===
+    const bodyStartY = startY + headH;
+    const bodyH = h * 0.37;
+    const armLen = 0.45 * w;
+
+    // corpo principale
+    ctx.beginPath();
+    ctx.fillStyle = darkMid;
+    ctx.rect(startX, bodyStartY, w, bodyH);
+    ctx.fill();
+
+    // piastre armatura
+    ctx.fillStyle = "#1e2d50";
+    ctx.fillRect(startX + 3, bodyStartY + 3, w - 6, bodyH * 0.45);
+
+    // V neon sul petto
+    ctx.shadowColor = neonSolid;
+    ctx.shadowBlur = 10 * glow;
+    ctx.strokeStyle = neon;
+    ctx.lineWidth = 2.5;
+    ctx.beginPath();
+    ctx.moveTo(startX + w * 0.1, bodyStartY + bodyH * 0.08);
+    ctx.lineTo(startX + w * 0.5, bodyStartY + bodyH * 0.45);
+    ctx.lineTo(startX + w * 0.9, bodyStartY + bodyH * 0.08);
+    ctx.stroke();
+
+    // linea orizzontale cintura
+    ctx.beginPath();
+    ctx.moveTo(startX + 4, bodyStartY + bodyH * 0.7);
+    ctx.lineTo(startX + w - 4, bodyStartY + bodyH * 0.7);
+    ctx.stroke();
+
+    // cerchio energia al centro cintura
+    ctx.beginPath();
+    ctx.arc(startX + w / 2, bodyStartY + bodyH * 0.7, 4, 0, Math.PI * 2);
+    ctx.fillStyle = neonSolid;
+    ctx.fill();
+
+    ctx.shadowBlur = 0;
+
+    // braccia
+    ctx.fillStyle = darkHood;
+    ctx.fillRect(startX - armLen, bodyStartY + bodyH * 0.05, armLen, bodyH * 0.3);
+    ctx.fillRect(startX + w, bodyStartY + bodyH * 0.05, armLen, bodyH * 0.3);
+
+    // bande neon sulle braccia
+    ctx.shadowColor = neonSolid;
+    ctx.shadowBlur = 6 * glow;
+    ctx.fillStyle = neon;
+    ctx.fillRect(startX - armLen * 0.65, bodyStartY + bodyH * 0.08, armLen * 0.15, bodyH * 0.24);
+    ctx.fillRect(startX + w + armLen * 0.5, bodyStartY + bodyH * 0.08, armLen * 0.15, bodyH * 0.24);
+
+    // mani
+    ctx.shadowBlur = 0;
+    ctx.fillStyle = "#222";
+    ctx.fillRect(startX - armLen - 3, bodyStartY + bodyH * 0.05, 6, bodyH * 0.3);
+    ctx.fillRect(startX + w + armLen - 3, bodyStartY + bodyH * 0.05, 6, bodyH * 0.3);
+
+    // === SPADA ENERGETICA ===
+    const swordX = startX + w + armLen + 2;
+    const swordHandleTop = bodyStartY + bodyH * 0.05;
+
+    // impugnatura
+    ctx.fillStyle = "#555";
+    ctx.fillRect(swordX - 2, swordHandleTop, 4, bodyH * 0.3);
+
+    // guardia
+    ctx.fillStyle = "#888";
+    ctx.fillRect(swordX - 6, swordHandleTop - 2, 12, 4);
+
+    // lama energia
+    ctx.shadowColor = "#ff0050";
+    ctx.shadowBlur = 14 + 6 * glow;
+    const bladeGrad = ctx.createLinearGradient(0, swordHandleTop - headH, 0, swordHandleTop);
+    bladeGrad.addColorStop(0, `rgba(255, 0, 80, ${0.3 + 0.2 * glow})`);
+    bladeGrad.addColorStop(1, "#ff0050");
+    ctx.strokeStyle = bladeGrad;
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.moveTo(swordX, swordHandleTop - 2);
+    ctx.lineTo(swordX, swordHandleTop - headH * 1.2);
+    ctx.stroke();
+
+    // nucleo lama (bianco)
+    ctx.strokeStyle = `rgba(255, 200, 220, ${0.6 + 0.4 * glow})`;
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(swordX, swordHandleTop - 2);
+    ctx.lineTo(swordX, swordHandleTop - headH * 1.2);
+    ctx.stroke();
+
+    ctx.shadowBlur = 0;
+
+    // === GAMBE ===
+    const legH = h - headH - bodyH;
+    const legStartY = bodyStartY + bodyH;
+    const legW = w * 0.35;
+
+    // parte alta gambe
+    ctx.fillStyle = darkBase;
+    ctx.fillRect(startX, legStartY, w, legH * 0.25);
+
+    // gamba sinistra
+    ctx.fillRect(startX, legStartY, legW, legH);
+    // gamba destra
+    ctx.fillRect(startX + w - legW, legStartY, legW, legH);
+
+    // ginocchiere neon
+    ctx.shadowColor = neonSolid;
+    ctx.shadowBlur = 5 * glow;
+    ctx.fillStyle = neon;
+    ctx.fillRect(startX + legW * 0.2, legStartY + legH * 0.4, legW * 0.6, 3);
+    ctx.fillRect(startX + w - legW + legW * 0.2, legStartY + legH * 0.4, legW * 0.6, 3);
+    ctx.shadowBlur = 0;
+
+    // stivali
+    ctx.fillStyle = darkMid;
+    ctx.fillRect(startX - 3, legStartY + legH * 0.78, legW + 6, legH * 0.22);
+    ctx.fillRect(startX + w - legW - 3, legStartY + legH * 0.78, legW + 6, legH * 0.22);
+
+    // suole neon
+    ctx.shadowColor = neonSolid;
+    ctx.shadowBlur = 4 * glow;
+    ctx.fillStyle = neon;
+    ctx.fillRect(startX - 3, legStartY + legH - 2, legW + 6, 2);
+    ctx.fillRect(startX + w - legW - 3, legStartY + legH - 2, legW + 6, 2);
+    ctx.shadowBlur = 0;
 
     ctx.restore();
 }
