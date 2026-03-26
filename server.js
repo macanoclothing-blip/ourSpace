@@ -19,14 +19,33 @@ const wsServer = httpsServer
 
 console.log("Server ws in ascolto sulla porta " + WEBSOCKET_PORT);
 
-let people = [];
+let people = {};
+let idCounter = 0;
+
+let incomingMessages = []; 
 
 wsServer.on("connection", (ws, req) => {
     const clientIp = req.socket.remoteAddress;
     console.log("Nuova connessione da " + clientIp);
 
+    idCounter+= 1;
+    const id = idCounter + '';
+    ws.id = id;
+    const idMessage = {
+        kind: "id",
+        id: id
+    };
+    ws.send(JSON.stringify(idMessage));
+
     ws.on("message", async data => {
-        // TODO
+        const message = JSON.parse(data);
+
+        incomingMessages.push({
+            clientId: ws.id,
+            payload: message
+        });
+
+        console.log(message)
     });
 
     ws.on("close", data => {
@@ -34,6 +53,38 @@ wsServer.on("connection", (ws, req) => {
     });
 });
 
+
+function tick(){
+    const messages = incomingMessages;
+    incomingMessages = [];
+
+    messages.forEach(message => {
+        const {clientId, payload} = message;
+        if(payload.kind === "init"){
+            people[clientId] = {
+                x: 0,
+                y: 0,
+                speed: 5,
+                character: payload.character,
+
+            }
+        }
+        else if(payload.kind === "move"){
+            const person = people[clientId]
+            person.x = payload.x 
+            person.y = payload.y
+        }
+    });
+    const resetMessage = JSON.stringify({
+        kind: "reset",
+        people: people
+    });
+    wsServer.clients.forEach(
+        socket => socket.send(resetMessage)
+    );
+}
+
+setInterval(tick, 1000/20)
 if (httpsServer) httpsServer.listen(WEBSOCKET_PORT, () => {
     console.log('Server https in ascolto sulla porta ' + WEBSOCKET_PORT);
 });
