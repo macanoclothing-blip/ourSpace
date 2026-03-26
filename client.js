@@ -216,16 +216,22 @@ function drawPerson(x, y, w, h, style) {
 const socket = new WebSocket(`ws://localhost:4242`);
 socket.addEventListener("message", async event => {
     const message = JSON.parse(event.data);
-    if(message.kind === "reset"){
+    if (message.kind === "init") {
+        myId = message.yourId;
+        people = message.people;
+    }
+    else if (message.kind === "update") {
         Object.entries(message.people).forEach(entry => {
             const [id, person] = entry
             if (id !== myId)        people[id] = person;
             else if (!people[myId]) people[myId] = person;
         });
     }
-    else if(message.kind === "id"){
-        myId = message.id;
-        console.log(myId)
+    else if (message.kind === "exit") {
+        delete people[message.id];
+    }
+    else if (message.kind === "reset") {
+        people = message.people;
     }
 });
 
@@ -267,7 +273,8 @@ setInterval(() => {
             socket.send(JSON.stringify(moveMessage));
         }
     }
-}, 1000/20)
+}, 1000/20);
+
 // gestione dello zoom
 const minZoom = 0.1, maxZoom = 4;
 const zoomSpeed = 0.035;

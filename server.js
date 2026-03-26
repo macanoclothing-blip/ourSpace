@@ -23,6 +23,7 @@ let people = {};
 let idCounter = 0;
 
 let incomingMessages = []; 
+let newPeople = {};
 
 wsServer.on("connection", (ws, req) => {
     const clientIp = req.socket.remoteAddress;
@@ -31,25 +32,30 @@ wsServer.on("connection", (ws, req) => {
     idCounter+= 1;
     const id = idCounter + '';
     ws.id = id;
-    const idMessage = {
-        kind: "id",
-        id: id
+    const initMessage = {
+        kind: "init",
+        yourId: id,
+        people: people
     };
-    ws.send(JSON.stringify(idMessage));
+    ws.send(JSON.stringify(initMessage));
 
     ws.on("message", async data => {
-        const message = JSON.parse(data);
+        const payload = JSON.parse(data);
 
         incomingMessages.push({
             clientId: ws.id,
-            payload: message
+            payload: payload
         });
-
-        console.log(message)
     });
 
     ws.on("close", data => {
         console.log("Client disconnesso: " + clientIp);
+        delete people[ws.id];
+        const exitMessage = JSON.stringify({
+            kind: "exit",
+            id: ws.id
+        });
+        wsServer.clients.forEach(socket => socket.send(exitMessage));
     });
 });
 
@@ -66,7 +72,6 @@ function tick(){
                 y: 0,
                 speed: 5,
                 character: payload.character,
-
             }
         }
         else if(payload.kind === "move"){
@@ -75,12 +80,12 @@ function tick(){
             person.y = payload.y
         }
     });
-    const resetMessage = JSON.stringify({
-        kind: "reset",
-        people: people
+    const updateMessage = JSON.stringify({
+        kind: "update",
+        people: people // TODO only send updated people
     });
     wsServer.clients.forEach(
-        socket => socket.send(resetMessage)
+        socket => socket.send(updateMessage)
     );
 }
 
