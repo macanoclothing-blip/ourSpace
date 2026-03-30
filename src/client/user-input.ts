@@ -5,6 +5,11 @@ export class UserInput {
     public xMoveDirection: number = 0;
     public yMoveDirection: number = 0;
 
+    private up: boolean = false;
+    private down: boolean = false;
+    private left: boolean = false;
+    private right: boolean = false;
+
     constructor(canvas: HTMLCanvasElement) {
         this.canvas = canvas;
 
@@ -23,16 +28,29 @@ export class UserInput {
         document.addEventListener("keydown", (event) => {
             if (event.repeat) return;
 
-            if (event.code == "KeyW") this.yMoveDirection -= 1;
-            else if (event.code == "KeyA") this.xMoveDirection -= 1;
-            else if (event.code == "KeyS") this.yMoveDirection += 1;
-            else if (event.code == "KeyD") this.xMoveDirection += 1;
+            if (event.code == "KeyW") this.up = true;
+            else if (event.code == "KeyA") this.left = true;
+            else if (event.code == "KeyS") this.down = true;
+            else if (event.code == "KeyD") this.right = true;
+
+            this.updateMoveDirections();
         });
         document.addEventListener("keyup", (event) => {
-            if (event.code == "KeyW") this.yMoveDirection += 1;
-            else if (event.code == "KeyA") this.xMoveDirection += 1;
-            else if (event.code == "KeyS") this.yMoveDirection -= 1;
-            else if (event.code == "KeyD") this.xMoveDirection -= 1;
+            if (event.code == "KeyW") this.up = false;
+            else if (event.code == "KeyA") this.left = false;
+            else if (event.code == "KeyS") this.down = false;
+            else if (event.code == "KeyD") this.right = false;
+
+            this.updateMoveDirections();
         });
+    }
+
+    updateMoveDirections() {
+        this.xMoveDirection = 0;
+        this.yMoveDirection = 0;
+        if (this.up) this.yMoveDirection -= 1;
+        if (this.left) this.xMoveDirection -= 1;
+        if (this.down) this.yMoveDirection += 1;
+        if (this.right) this.xMoveDirection += 1;
     }
 }
