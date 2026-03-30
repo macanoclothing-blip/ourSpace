@@ -13,6 +13,7 @@ import {
 const SERVER_PORT = process.env.OURSPACE_SERVER_PORT || 4242;
 const PUBLIC_FOLDER = process.env.OURSPACE_PUBLIC_FOLDER || 'build/public';
 
+// Creiamo un server http o https
 let httpServer = http.createServer();
 if (process.env.OURSPACE_HTTPS_ENABLED) {
     const serverConfig = {
@@ -23,6 +24,7 @@ if (process.env.OURSPACE_HTTPS_ENABLED) {
     console.log("Using https");
 }
 
+// Serviamo i file del client, usando il server appena creato
 const indexHTMLFile = fs.readFileSync(path.join(PUBLIC_FOLDER, 'index.html'));
 const indexJSFile = fs.readFileSync(path.join(PUBLIC_FOLDER, 'index.js'));
 httpServer.on('request', (req, res) => {
@@ -40,8 +42,8 @@ httpServer.on('request', (req, res) => {
     }
 });
 
+// Creiamo un server WebSocket
 const wsServer = new WebSocketServer({ server: httpServer })
-
 console.log("Server ws in ascolto sulla porta " + SERVER_PORT);
 
 let idCounter: number = 0;
@@ -52,16 +54,20 @@ wsServer.on("connection", (ws, req) => {
     const clientIp = req.socket.remoteAddress;
     console.log("Nuova connessione da " + clientIp);
 
+    // Quando un nuovo client si connette:
+    // * gli assegnamo un id
+    // * gli mandiamo un messaggio contenente il suo id
     idCounter+= 1;
     const id = idCounter + '';
     ws.id = id;
-    lobby.clientConnected(id);
+    lobby.clientConnected(id); // segnaliamo alla lobby che c'e' un nuovo client
     const initMessage: ServerInitMsg = {
         kind: "init",
         yourId: id
     };
     ws.send(JSON.stringify(initMessage));
 
+    // Mettiamo i messaggi in arrivo dai client in una coda
     ws.on("message", data => {
         const payload = JSON.parse(data);
 
@@ -71,9 +77,10 @@ wsServer.on("connection", (ws, req) => {
         });
     });
 
+    // Segnaliamo l'uscita di un client a tutto gli altri
     ws.on("close", data => {
         console.log("Client disconnesso: " + clientIp);
-        lobby.clientClosed(id);
+        lobby.clientClosed(id); // segnaliamo alla lobby che il client si e' disconnesso
         const exitMessage: ServerExitMsg = {
             kind: "exit",
             id: ws.id
