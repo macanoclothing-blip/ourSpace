@@ -1,10 +1,5 @@
 import { Person, ClientMsg, ClientInitMsg, ServerMsg, mod, OutgoingServerMsg, IncomingClientMsg, ServerUpdateMsg } from './common';
 
-type ClientPerson = Person & {
-    xTarget?: number;
-    yTarget?: number;
-};
-
 const EPSILON = 0.000001;
 
 const worldW = 1000, worldH = 600;
@@ -84,13 +79,18 @@ export class LobbyServer {
 }
 
 //////////////////////
-////// SERVER ////////
+////// CLIENT ////////
 //////////////////////
 
 import { getCharacterDrawFunction, getCharacterNames } from './client/characters';
 import { UserInput } from './client/user-input';
 // gestione dello zoom
 const ZOOM_MIN = 0.1, ZOOM_MAX = 4, ZOOM_SPEED = 0.035;
+
+type ClientPerson = Person & {
+    xTarget?: number;
+    yTarget?: number;
+};
 
 export class LobbyClient {
     public userInput: any;
