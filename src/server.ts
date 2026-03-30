@@ -6,8 +6,7 @@ import { WebSocketServer } from 'ws';
 import { LobbyServer } from './lobby';
 
 import {
-    TICK_FREQUENCY, IncomingClientMsg,
-    ServerInitMsg, ServerExitMsg, OutgoingServerMsg
+    TICK_FREQUENCY, IncomingClientMsg, OutgoingServerMsg
 } from "./common";
 
 const SERVER_PORT = process.env.OURSPACE_SERVER_PORT || 4242;
@@ -53,6 +52,7 @@ const lobby = new LobbyServer();
 wsServer.on("connection", (ws, req) => {
     const clientIp = req.socket.remoteAddress;
     console.log("Nuova connessione da " + clientIp);
+    req.socket.setNoDelay(true);
 
     idCounter+= 1;
     const id = idCounter + '';
