@@ -22,6 +22,7 @@ if (process.env.OURSPACE_HTTPS_ENABLED) {
         cert: fs.readFileSync(process.env.OURSPACE_HTTPS_CERT)
     };
     httpServer = https.createServer(serverConfig)
+    console.log("Using https");
 }
 
 const indexHTMLFile = fs.readFileSync('build/public/index.html');
@@ -123,5 +124,5 @@ function tick(){
 
 setInterval(tick, 1000/TICK_FREQUENCY)
 if (httpServer) httpServer.listen(SERVER_PORT, () => {
-    console.log('Server https in ascolto sulla porta ' + SERVER_PORT);
+    console.log('Server http in ascolto sulla porta ' + SERVER_PORT);
 });
