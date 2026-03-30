@@ -1,4 +1,7 @@
-import { Person, ServerMsg, ClientInitMsg, ClientMoveMsg, mod, TICK_FREQUENCY } from '../common';
+import {
+    Person, ServerMsg, ClientInitMsg, ClientMoveMsg,
+    mod, TICK_FREQUENCY
+} from '../common';
 import { getCharacterDrawFunction, getCharacterNames } from './characters';
 
 type ClientPerson = Person & {
@@ -206,7 +209,9 @@ function drawPerson(ctx: CanvasRenderingContext2D, x, y, w, h, characterName) {
     drawFunction(ctx, x, y, w, h, characterName);
 }
 
-const socket = new WebSocket(`ws://localhost:4242`);
+const wsConnectionString = `ws://localhost:4242`;
+const socket = new WebSocket(wsConnectionString);
+
 socket.addEventListener("message", async event => {
     const message: ServerMsg = JSON.parse(event.data);
     if (message.kind === "init") {

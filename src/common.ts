@@ -1,4 +1,4 @@
-export const TICK_FREQUENCY: number = 20; // ticks per second
+export const TICK_FREQUENCY = 20; // ticks per second
 
 export type Person = {
     x: number;
@@ -48,3 +48,5 @@ export type ClientMsg =
 
 // Funzioni matematiche
 export const mod = (n: number, m: number) => ((n % m) + m) % m;
+
+

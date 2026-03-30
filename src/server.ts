@@ -1,5 +1,6 @@
 import * as fs from 'fs';
 import * as https from 'https';
+import * as http from 'http';
 import { WebSocketServer } from 'ws';
 
 import {
@@ -12,22 +13,37 @@ type IncomingMessage = {
     payload: ClientMsg
 };
 
-const WEBSOCKET_PORT = 4242;
+const SERVER_PORT = process.env.OURSPACE_SERVER_PORT || 4242;
 
-let httpsServer = null;
-if (process.env.OURSPACE_HTTPS_ENABLED) {
+let httpServer = http.createServer();
+if (process.env.HTTPS_ENABLED) {
     const serverConfig = {
         key: fs.readFileSync(process.env.OURSPACE_HTTPS_KEY),
         cert: fs.readFileSync(process.env.OURSPACE_HTTPS_CERT)
     };
-    httpsServer = https.createServer(serverConfig)
+    httpServer = https.createServer(serverConfig)
 }
 
-const wsServer = httpsServer
-    ? new WebSocketServer({ server: httpsServer })
-    : new WebSocketServer({ port: WEBSOCKET_PORT });
+const indexHTMLFile = fs.readFileSync('build/public/index.html');
+const indexJSFile = fs.readFileSync('build/public/index.js');
+httpServer.on('request', (req, res) => {
+    if (req.method === 'GET' && req.url === '/' || req.url === '/index.html') {
+        res.writeHead(200, { 'Content-Type': 'text/html' });
+        res.end(indexHTMLFile);
+    }
+    else if (req.method === 'GET' && req.url === '/index.js') {
+        res.writeHead(200, { 'Content-Type': 'application/javascript' });
+        res.end(indexJSFile);
+    }
+    else {
+        res.writeHead(404, { 'Content-Type': 'text/plain' });
+        res.end('404 Not Found');
+    }
+});
 
-console.log("Server ws in ascolto sulla porta " + WEBSOCKET_PORT);
+const wsServer = new WebSocketServer({ server: httpServer })
+
+console.log("Server ws in ascolto sulla porta " + SERVER_PORT);
 
 let people: Record<string, Person> = {};
 let idCounter: number = 0;
@@ -106,6 +122,6 @@ function tick(){
 }
 
 setInterval(tick, 1000/TICK_FREQUENCY)
-if (httpsServer) httpsServer.listen(WEBSOCKET_PORT, () => {
-    console.log('Server https in ascolto sulla porta ' + WEBSOCKET_PORT);
+if (httpServer) httpServer.listen(SERVER_PORT, () => {
+    console.log('Server https in ascolto sulla porta ' + SERVER_PORT);
 });
