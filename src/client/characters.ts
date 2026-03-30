@@ -1418,8 +1418,16 @@ function drawClashRoyaleKnight(ctx: CanvasRenderingContext2D, x, y, w, h, style 
     ctx.restore();
 }
 
+export type CharacterDrawFunction = (
+    ctx: CanvasRenderingContext2D,
+    x: number,
+    y: number,
+    w: number,
+    h: number,
+    style?: Record<string, any>
+) => void;
 
-export const characters = {
+const drawFunctions: Record<string, CharacterDrawFunction> = {
     normalGuy: drawNormalGuy,
     persona1: persona1,
     persona2: drawPersona2,
@@ -1435,3 +1443,26 @@ export const characters = {
     clashRoyaleKnight: drawClashRoyaleKnight,
 }
 
+function defaultDrawFunction(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, style: any = {}) {
+    ctx.save();
+
+    ctx.translate(x, y);
+    const startX = -w / 2;
+    const startY = -h / 2;
+
+    ctx.beginPath();
+    ctx.fillStyle = "#FF00FF";
+    ctx.rect(startX, startY, w, h);
+    ctx.fill();
+
+    ctx.restore();
+}
+
+export function getCharacterNames(): string[] {
+    return Object.keys(drawFunctions);
+}
+
+export function getCharacterDrawFunction(characterName: string): CharacterDrawFunction {
+    const drawFunction = drawFunctions[characterName];
+    return drawFunction || defaultDrawFunction;
+}

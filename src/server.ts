@@ -1,6 +1,16 @@
-const fs = require('fs');
-const https = require('https');
-const { WebSocketServer } = require('ws');
+import * as fs from 'fs';
+import * as https from 'https';
+import { WebSocketServer } from 'ws';
+
+import {
+    Person, TICK_FREQUENCY,
+    ServerUpdateMsg, ServerInitMsg, ServerExitMsg, ClientMsg
+} from "./common";
+
+type IncomingMessage = {
+    clientId: string,
+    payload: ClientMsg
+};
 
 const WEBSOCKET_PORT = 4242;
 
@@ -19,11 +29,10 @@ const wsServer = httpsServer
 
 console.log("Server ws in ascolto sulla porta " + WEBSOCKET_PORT);
 
-let people = {};
-let idCounter = 0;
+let people: Record<string, Person> = {};
+let idCounter: number = 0;
 
-let incomingMessages = []; 
-let newPeople = {};
+let incomingMessages: IncomingMessage[] = []; 
 
 wsServer.on("connection", (ws, req) => {
     const clientIp = req.socket.remoteAddress;
@@ -32,7 +41,7 @@ wsServer.on("connection", (ws, req) => {
     idCounter+= 1;
     const id = idCounter + '';
     ws.id = id;
-    const initMessage = {
+    const initMessage: ServerInitMsg = {
         kind: "init",
         yourId: id,
         people: people
@@ -51,11 +60,12 @@ wsServer.on("connection", (ws, req) => {
     ws.on("close", data => {
         console.log("Client disconnesso: " + clientIp);
         delete people[ws.id];
-        const exitMessage = JSON.stringify({
+        const exitMessage: ServerExitMsg = {
             kind: "exit",
             id: ws.id
-        });
-        wsServer.clients.forEach(socket => socket.send(exitMessage));
+        };
+        const exitMessageString = JSON.stringify(exitMessage);
+        wsServer.clients.forEach(socket => socket.send(exitMessageString));
     });
 });
 
@@ -63,33 +73,39 @@ wsServer.on("connection", (ws, req) => {
 function tick(){
     const messages = incomingMessages;
     incomingMessages = [];
+    const updatedPeople: Record<string, Person> = {};
 
     messages.forEach(message => {
-        const {clientId, payload} = message;
-        if(payload.kind === "init"){
-            people[clientId] = {
+        const clientId: string = message.clientId;
+        const payload: ClientMsg = message.payload;
+        if (payload.kind === "init") {
+            const newPerson = {
                 x: 0,
                 y: 0,
                 speed: 5,
                 character: payload.character,
-            }
+            };
+            people[clientId] = newPerson;
+            updatedPeople[clientId] = newPerson;
         }
-        else if(payload.kind === "move"){
+        else if (payload.kind === "move") {
             const person = people[clientId]
             person.x = payload.x 
             person.y = payload.y
+            updatedPeople[clientId] = person;
         }
     });
-    const updateMessage = JSON.stringify({
+    const updateMessage: ServerUpdateMsg = {
         kind: "update",
-        people: people // TODO only send updated people
-    });
+        people: updatedPeople
+    };
+    const updateMessageString = JSON.stringify(updateMessage);
     wsServer.clients.forEach(
-        socket => socket.send(updateMessage)
+        socket => socket.send(updateMessageString)
     );
 }
 
-setInterval(tick, 1000/20)
+setInterval(tick, 1000/TICK_FREQUENCY)
 if (httpsServer) httpsServer.listen(WEBSOCKET_PORT, () => {
     console.log('Server https in ascolto sulla porta ' + WEBSOCKET_PORT);
 });

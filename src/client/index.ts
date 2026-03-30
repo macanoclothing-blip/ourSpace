@@ -1,10 +1,13 @@
+import { Person, ServerMsg, ClientInitMsg, ClientMoveMsg, mod, TICK_FREQUENCY } from '../common';
+import { getCharacterDrawFunction, getCharacterNames } from './characters';
 
-import { characters } from './characters';
+type ClientPerson = Person & {
+    xTarget?: number;
+    yTarget?: number;
+};
 
 const playground = document.getElementById('playground') as HTMLCanvasElement;
 const ctx: CanvasRenderingContext2D = playground.getContext("2d")!;
-
-const mod = (n: number, m: number) => ((n % m) + m) % m;
 
 let screenW = 0, screenH = 0; // larghezza ed altezza del canvas
 const worldW = 1000, worldH = 600; // larghezza ed altezza dello spazio di gioco
@@ -26,8 +29,7 @@ resize();
 window.addEventListener('resize', resize);
 
 let myId: string | null = null;
-let people: Record<string, any> = {}; 
-
+let people: Record<string, ClientPerson> = {}; 
 
 const personW = 40;
 const personH = 120;
@@ -100,7 +102,7 @@ function createButton(text: string, onclick, colors: any = {}) {
 }
 
 
-const characterNames = Object.keys(characters);
+const characterNames = getCharacterNames();
 let selectedCharacterIdx = 0;
 
 const drawLeftBtn = createButton('<', () => {
@@ -110,7 +112,7 @@ const drawRightBtn = createButton('>', () => {
     selectedCharacterIdx = mod(selectedCharacterIdx - 1, characterNames.length);
 });
 const drawOkBtn = createButton('ok', () => {
-    const initMessage = {
+    const initMessage: ClientInitMsg = {
         kind: "init",
         character: characterNames[selectedCharacterIdx]
     }
@@ -200,13 +202,13 @@ function draw() {
 requestAnimationFrame(draw);
 
 function drawPerson(ctx: CanvasRenderingContext2D, x, y, w, h, characterName) {
-    const drawFunction = characters[characterName];
+    const drawFunction = getCharacterDrawFunction(characterName);
     drawFunction(ctx, x, y, w, h, characterName);
 }
 
 const socket = new WebSocket(`ws://localhost:4242`);
 socket.addEventListener("message", async event => {
-    const message = JSON.parse(event.data);
+    const message: ServerMsg = JSON.parse(event.data);
     if (message.kind === "init") {
         myId = message.yourId;
         people = message.people;
@@ -227,9 +229,6 @@ socket.addEventListener("message", async event => {
     }
     else if (message.kind === "exit") {
         delete people[message.id];
-    }
-    else if (message.kind === "reset") {
-        people = message.people;
     }
 });
 
@@ -256,14 +255,13 @@ let prevY = 0;
 const EPSILON = 0.000001;
 setInterval(() => {
     const me = myId ? people[myId] : null
-    if(me){
-
+    if (me) {
         const distX = Math.abs(me.x - prevX)
         const distY = Math.abs(me.y - prevY)
-        if(distX > EPSILON || distY > EPSILON){
+        if (distX > EPSILON || distY > EPSILON) {
             prevX = me.x
             prevY = me.y
-            const moveMessage = {
+            const moveMessage: ClientMoveMsg = {
                 kind: "move",
                 x: me.x, 
                 y: me.y
@@ -271,7 +269,7 @@ setInterval(() => {
             socket.send(JSON.stringify(moveMessage));
         }
     }
-}, 1000/20);
+}, 1000/TICK_FREQUENCY);
 
 // gestione dello zoom
 const minZoom = 0.1, maxZoom = 4;
