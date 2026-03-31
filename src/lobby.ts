@@ -89,8 +89,6 @@ export class LobbyServer {
 
 import { getCharacterDrawFunction, getCharacterNames } from './client/characters';
 import { UserInput } from './client/user-input';
-// gestione dello zoom
-const ZOOM_MIN = 0.1, ZOOM_MAX = 4, ZOOM_SPEED = 0.035;
 
 type ClientPerson = Person & {
     xTarget?: number;
@@ -136,23 +134,14 @@ export class LobbyClient {
                 character: this.characterNames[this.selectedCharacterIndex]
             }
         }, { main: "#58a515" });
-
-        // TODO move this to UserInput
-        window.addEventListener('wheel', (event) => {
-            event.preventDefault();
-            
-            if (event.deltaY > 0) {
-                this.camera.zoom *= (1 - ZOOM_SPEED);
-            } else {
-                this.camera.zoom *= (1 + ZOOM_SPEED);
-            }
-
-            this.camera.zoom = Math.min(Math.max(ZOOM_MIN, this.camera.zoom), ZOOM_MAX);
-        }, { passive: false });
     }
 
     draw(ctx: CanvasRenderingContext2D, dt: number) {
-        const { screenW, screenH, xMoveDirection, yMoveDirection } = this.userInput;
+        const {
+            screenW, screenH, zoom,
+            xMoveDirection, yMoveDirection
+        } = this.userInput;
+
         const me = this.getMe();
         if (me) { // LOBBY
             // gestione movimento
@@ -168,6 +157,7 @@ export class LobbyClient {
             // la camera segue il giocatore
             this.camera.x = me.x;
             this.camera.y = me.y;
+            this.camera.zoom = zoom;
 
             // pulisci lo schermo
             ctx.beginPath();

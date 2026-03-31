@@ -1,9 +1,12 @@
+const ZOOM_MIN = 0.1, ZOOM_MAX = 4, ZOOM_SPEED = 0.035;
+
 export class UserInput {
     public canvas: HTMLCanvasElement;
     public screenW: number = 0;
     public screenH: number = 0;
     public xMoveDirection: number = 0;
     public yMoveDirection: number = 0;
+    public zoom: number = 1;
 
     private up: boolean = false;
     private down: boolean = false;
@@ -48,6 +51,18 @@ export class UserInput {
             this.xMoveDirection = 0;
             this.yMoveDirection = 0;
         });
+
+        window.addEventListener('wheel', (event) => {
+            event.preventDefault();
+
+            if (event.deltaY > 0) {
+                this.zoom *= (1 - ZOOM_SPEED);
+            } else {
+                this.zoom *= (1 + ZOOM_SPEED);
+            }
+
+            this.zoom = Math.min(Math.max(ZOOM_MIN, this.zoom), ZOOM_MAX);
+        }, { passive: false });
     }
 
     updateMoveDirections() {
