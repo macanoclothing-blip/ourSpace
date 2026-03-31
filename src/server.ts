@@ -61,18 +61,20 @@ wsServer.on("connection", (ws, req) => {
 
     // Mettiamo i messaggi in arrivo dai client in una coda
     ws.on("message", data => {
-        const payload = JSON.parse(data);
+        try {
+            const payload = JSON.parse(data);
 
-        incomingMessages.push({
-            clientId: ws.id,
-            payload: payload
-        });
+            incomingMessages.push({
+                clientId: ws.id,
+                payload: payload
+            });
+        } catch (e) {} // se il messaggio non e' in JSON, non lo consideriamo
     });
 
-    // Segnaliamo l'uscita di un client a tutto gli altri
+    // Segnaliamo l'uscita di un client a tutti gli altri
     ws.on("close", data => {
         console.log("Client disconnesso: " + clientIp);
-        lobby.clientClosed(id); // segnaliamo alla lobby che il client si e' disconnesso
+        lobby.clientClosed(id);
     });
 });
 
