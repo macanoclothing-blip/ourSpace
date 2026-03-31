@@ -57,8 +57,15 @@ export type IncomingClientMsg = {
     payload: ClientMsg
 };
 
+// Altre utilita'
 
-// Funzioni matematiche
+export type Rectangle = {
+    x: number; // x position of the top left corner
+    y: number; // y position of the top left corner
+    w: number; // width
+    h: number; // height
+}
+
 export const mod = (n: number, m: number) => ((n % m) + m) % m;
 
 

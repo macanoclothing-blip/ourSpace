@@ -1,4 +1,5 @@
 import { Person, ClientMsg, ClientInitMsg, ServerMsg, mod, OutgoingServerMsg, IncomingClientMsg, ServerUpdateMsg } from './common';
+import { Button } from './client/ui-elements';
 
 const EPSILON = 0.000001;
 
@@ -107,9 +108,9 @@ export class LobbyClient {
     public characterNames: string[];
     public selectedCharacterIndex: number;
 
-    public drawLeftBtn: any;
-    public drawRightBtn: any;
-    public drawOkBtn: any;
+    public leftBtn: Button;
+    public rightBtn: Button;
+    public okBtn: Button;
 
     public initMessage: ClientInitMsg | null = null;
 
@@ -122,18 +123,19 @@ export class LobbyClient {
         this.characterNames = getCharacterNames();
         this.selectedCharacterIndex = 0;
 
-        this.drawLeftBtn = this.createButton('<', () => {
+        this.leftBtn = new Button('<', userInput, () => {
             this.selectedCharacterIndex = mod(this.selectedCharacterIndex + 1, this.characterNames.length);
         });
-        this.drawRightBtn = this.createButton('>', () => {
+        this.rightBtn = new Button('>', userInput, () => {
             this.selectedCharacterIndex = mod(this.selectedCharacterIndex - 1, this.characterNames.length);
         });
-        this.drawOkBtn = this.createButton('ok', () => {
+        this.okBtn = new Button('ok', userInput, () => {
             this.initMessage = {
                 kind: "init",
                 character: this.characterNames[this.selectedCharacterIndex]
             }
-        }, { main: "#58a515" });
+        });
+        this.okBtn.setColors({ main: "#58a515" })
     }
 
     draw(ctx: CanvasRenderingContext2D, dt: number) {
@@ -204,8 +206,8 @@ export class LobbyClient {
                 const btnWidth = side * 0.1;
                 const btnHeight = side  * 0.4;
                 const btnSpacing = borderWidth + 5;
-                this.drawRightBtn({ x: side/2 - btnWidth - btnSpacing, y: -btnHeight/2, w: btnWidth, h: btnHeight }, ctx);
-                this.drawLeftBtn({ x: -side/2 + btnSpacing, y: -btnHeight/2, w: btnWidth, h: btnHeight }, ctx);
+                this.rightBtn.draw(ctx, side/2 - btnWidth - btnSpacing, -btnHeight/2, btnWidth, btnHeight);
+                this.leftBtn.draw(ctx, -side/2 + btnSpacing, -btnHeight/2, btnWidth, btnHeight);
 
                 const characterName = this.characterNames[this.selectedCharacterIndex];
                 const characterH = side * 0.6;
@@ -215,7 +217,7 @@ export class LobbyClient {
 
                 const okBtnW = side * 0.4;
                 const okBtnH = side * 0.1;
-                this.drawOkBtn({ x: -okBtnW/2, y: side/2 - okBtnH - btnSpacing, w: okBtnW, h: okBtnH }, ctx);
+                this.okBtn.draw(ctx, -okBtnW/2, side/2 - okBtnH - btnSpacing, okBtnW, okBtnH);
 
             ctx.restore();
         }
@@ -273,75 +275,6 @@ export class LobbyClient {
 
     getMe(): Person | null {
         return this.myId ? this.people[this.myId] : null;
-    }
-
-    createButton(text: string, onclick, colors: any = {}) {
-        const { canvas, screenW, screenH } = this.userInput;
-
-        // +state
-        let rect = { x: 0, y: 0, w: 0, h: 0 };
-        let isPressed = false;
-        // -state
-
-        // +click_handling
-        const getPointerPos = (e) => {
-            const bounds = canvas.getBoundingClientRect();
-            return {
-                x: e.clientX - bounds.left - screenW/2,
-                y: e.clientY - bounds.top - screenH/2
-            };
-        };
-        const isInside = (pos) => {
-            return pos.x >= rect.x && pos.x <= rect.x + rect.w &&
-                pos.y >= rect.y && pos.y <= rect.y + rect.h;
-        };
-        canvas.addEventListener('pointerdown', (e) => {
-            if (isInside(getPointerPos(e))) {
-                isPressed = true;
-            }
-        });
-        canvas.addEventListener('pointerup', (e) => {
-            if (isPressed && isInside(getPointerPos(e))) {
-                onclick();
-            }
-            isPressed = false;
-        });
-        canvas.addEventListener('pointercancel', () => isPressed = false);
-        window.addEventListener('pointerup', () => isPressed = false);
-        // -click_handling
-
-        const drawButton = (newRect, ctx) => {
-            rect = newRect; 
-
-            const mainColor = colors.main || "#d18800";
-            const textColor = colors.text || "#e6e6e6";
-            const shadowColor = colors.shadow || "#161616";
-
-            const { x, y, w, h } = rect;
-            const shadowOffset = Math.min(w, h) * 0.07;
-            const pushOffset = isPressed ? shadowOffset * 0.5 : 0;
-
-            // ombra
-            ctx.beginPath();
-            ctx.rect(x + shadowOffset, y + shadowOffset, w, h);
-            ctx.fillStyle = shadowColor;
-            ctx.fill();
-
-            // bottone
-            ctx.beginPath();
-            ctx.rect(x + pushOffset, y + pushOffset, w, h);
-            ctx.fillStyle = mainColor;
-            ctx.fill();
-
-            // testo
-            ctx.fillStyle = textColor;
-            ctx.font = `bold ${Math.floor(Math.min(w, h) * 0.5)}px Arial`;
-            ctx.textAlign = "center";
-            ctx.textBaseline = "middle";
-            ctx.fillText(text, x + w / 2 + pushOffset, y + h / 2 + pushOffset);
-        }
-
-        return drawButton;
     }
 } 
 
