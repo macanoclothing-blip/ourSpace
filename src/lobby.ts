@@ -164,110 +164,126 @@ export class LobbyClient {
         } = this.userInput;
 
         const me = this.getMe();
-        if (me) { // LOBBY
-            // gestione movimento
-            me.x += xMoveDirection * me.speed;
-            me.y += yMoveDirection * me.speed;
+        if (me) this.drawLobby(ctx, me);
+        else    this.drawCharacterSelect(ctx);
+    }
 
-            // controllo che il giocatore non esca dallo spazio di gioco
-            if (me.y - personH/2 < worldBounds.top) me.y = worldBounds.top + personH/2 + EPSILON;
-            if (me.y + personH/2 > worldBounds.bottom) me.y = worldBounds.bottom - personH/2 - EPSILON;
-            if (me.x - personW/2 < worldBounds.left) me.x = worldBounds.left + personW/2 + EPSILON;
-            if (me.x + personW/2 > worldBounds.right) me.x = worldBounds.right - personW/2 - EPSILON;
+    drawLobby(ctx: CanvasRenderingContext2D, me: Person) {
+        const {
+            screenW, screenH, zoom,
+            xMoveDirection, yMoveDirection
+        } = this.userInput;
 
-            // la camera segue il giocatore
-            this.camera.x = me.x;
-            this.camera.y = me.y;
-            this.camera.zoom = zoom;
+        // gestione movimento
+        me.x += xMoveDirection * me.speed;
+        me.y += yMoveDirection * me.speed;
 
-            // pulisci lo schermo
-            ctx.beginPath();
-            ctx.rect(0, 0, screenW, screenH);
-            ctx.fillStyle = "#000";
-            ctx.fill();
+        // controllo che il giocatore non esca dallo spazio di gioco
+        if (me.y - personH/2 < worldBounds.top) me.y = worldBounds.top + personH/2 + EPSILON;
+        if (me.y + personH/2 > worldBounds.bottom) me.y = worldBounds.bottom - personH/2 - EPSILON;
+        if (me.x - personW/2 < worldBounds.left) me.x = worldBounds.left + personW/2 + EPSILON;
+        if (me.x + personW/2 > worldBounds.right) me.x = worldBounds.right - personW/2 - EPSILON;
 
-            ctx.save(); // sistema di coordinate world-space
-                ctx.translate(screenW/2, screenH/2); // centra lo schermo
-                ctx.scale(this.camera.zoom, this.camera.zoom); // applica lo zoom
-                ctx.translate(-this.camera.x, -this.camera.y); // sposta relativamente alla camera
+        // la camera segue il giocatore
+        this.camera.x = me.x;
+        this.camera.y = me.y;
+        this.camera.zoom = zoom;
 
-                // disegna lo sfondo del "mondo" (campo da gioco)
-                ctx.beginPath();
-                ctx.rect(worldBounds.left, worldBounds.top, worldW, worldH);
-                ctx.fillStyle = "#58a515";
-                ctx.fill();
+        // pulisci lo schermo
+        ctx.beginPath();
+        ctx.rect(0, 0, screenW, screenH);
+        ctx.fillStyle = "#000";
+        ctx.fill();
 
-                // disegna le persone
-                Object.entries(this.people).forEach(([id, person]) => {
-                    if (id !== this.myId && person.xTarget) {
-                        person.x += (person.xTarget - person.x) * 0.3;
-                        person.y += (person.yTarget - person.y) * 0.3;
-                    }
-                    const drawPerson = getCharacterDrawFunction(person.character);
-                    drawPerson(ctx, person.x, person.y, personW, personH);
-                    // +personName
-                    const fontSize = Math.floor(personH * 0.15);
-                    const nameY = person.y - personH/2 - fontSize - personH*0.08;
-                    ctx.font = `${fontSize}px Arial`;
-                    const nameWidth = ctx.measureText(person.name).width;
-                    const padding = 4;
+        ctx.save();
 
-                    // Draw a semi-transparent black background pill
-                    ctx.fillStyle = "rgba(0, 0, 0, 0.5)"; 
-                    ctx.fillRect(
-                        person.x - (nameWidth / 2) - padding, 
-                        nameY - padding, 
-                        nameWidth + (padding * 2), 
-                        fontSize + (padding * 2)
-                    );
-                    ctx.textAlign = "center";
-                    ctx.textBaseline = "top";
-                    ctx.lineWidth = 4;
-                    ctx.fillStyle = "#eeeeee";
-                    ctx.fillText(person.name, person.x, nameY);
-                    // -personName
-                });
-            ctx.restore();
-        } else { // CHARACTER SELECT
-            let side = Math.min(screenH, screenW);
-            ctx.save();
-                ctx.translate(screenW/2, screenH/2); // centra lo schermo
+        ctx.translate(screenW/2, screenH/2); // centra lo schermo
+        ctx.scale(this.camera.zoom, this.camera.zoom); // applica lo zoom
+        ctx.translate(-this.camera.x, -this.camera.y); // sposta relativamente alla camera
 
-                const borderWidth = 20;
-                ctx.beginPath();
-                ctx.rect(-side/2, -side/2, side, side);
-                ctx.clip();
-                ctx.strokeStyle = "#161616";
-                ctx.lineWidth = borderWidth;
-                ctx.fillStyle = "#acabab";
-                ctx.fill();
-                ctx.stroke();
+        // disegna lo sfondo del "mondo" (campo da gioco)
+        ctx.beginPath();
+        ctx.rect(worldBounds.left, worldBounds.top, worldW, worldH);
+        ctx.fillStyle = "#58a515";
+        ctx.fill();
 
-                // personaggio
-                const characterName = this.characterNames[this.selectedCharacterIndex];
-                const characterH = side * 0.5;
-                const characterW = characterH * personW / personH;
-                const drawPerson = getCharacterDrawFunction(characterName);
-                drawPerson(ctx, 0, 0, characterW, characterH);
+        // disegna le persone
+        Object.entries(this.people).forEach(([id, person]) => {
+            if (id !== this.myId && person.xTarget) {
+                person.x += (person.xTarget - person.x) * 0.3;
+                person.y += (person.yTarget - person.y) * 0.3;
+            }
+            const drawPerson = getCharacterDrawFunction(person.character);
+            drawPerson(ctx, person.x, person.y, personW, personH, );
+            this.drawPersonName(ctx, person);
+        });
 
-                const padding = borderWidth + 5;
+        ctx.restore();
+    }
 
-                // input nickname
-                const nameInputW = side * 0.7;
-                const nameInputH = side * 0.1;
-                this.nameInput.draw(ctx, -nameInputW/2, -side/2 + padding, nameInputW, nameInputH);
+    drawPersonName(ctx: CanvasRenderingContext2D, person: Person) {
+        const fontSize = Math.floor(personH * 0.15);
+        const nameY = person.y - personH/2 - fontSize - personH*0.08;
+        ctx.font = `${fontSize}px Arial`;
+        const nameWidth = ctx.measureText(person.name).width;
+        const padding = 4;
 
-                // bottoni
-                const btnWidth = side * 0.1;
-                const btnHeight = side  * 0.4;
-                this.rightBtn.draw(ctx, side/2 - btnWidth - padding, -btnHeight/2, btnWidth, btnHeight);
-                this.leftBtn.draw(ctx, -side/2 + padding, -btnHeight/2, btnWidth, btnHeight);
-                const okBtnW = side * 0.4;
-                const okBtnH = side * 0.1;
-                this.okBtn.draw(ctx, -okBtnW/2, side/2 - okBtnH - padding, okBtnW, okBtnH);
+        ctx.fillStyle = "rgba(0, 0, 0, 0.5)"; 
+        ctx.fillRect(
+            person.x - (nameWidth / 2) - padding, 
+            nameY - padding, 
+            nameWidth + (padding * 2), 
+            fontSize + (padding * 2)
+        );
+        ctx.textAlign = "center";
+        ctx.textBaseline = "top";
+        ctx.lineWidth = 4;
+        ctx.fillStyle = "#eeeeee";
+        ctx.fillText(person.name, person.x, nameY);
+    }
 
-            ctx.restore();
-        }
+    drawCharacterSelect(ctx: CanvasRenderingContext2D) {
+        const { screenW, screenH } = this.userInput;
+        const side = Math.min(screenH, screenW);
+
+        ctx.save();
+
+        ctx.translate(screenW/2, screenH/2); // centra lo schermo
+
+        const borderWidth = 20;
+        ctx.beginPath();
+        ctx.rect(-side/2, -side/2, side, side);
+        ctx.clip();
+        ctx.strokeStyle = "#161616";
+        ctx.lineWidth = borderWidth;
+        ctx.fillStyle = "#acabab";
+        ctx.fill();
+        ctx.stroke();
+
+        // personaggio
+        const characterName = this.characterNames[this.selectedCharacterIndex];
+        const characterH = side * 0.5;
+        const characterW = characterH * personW / personH;
+        const drawPerson = getCharacterDrawFunction(characterName);
+        drawPerson(ctx, 0, 0, characterW, characterH);
+
+        const padding = borderWidth + 5;
+
+        // input nickname
+        const nameInputW = side * 0.7;
+        const nameInputH = side * 0.1;
+        this.nameInput.draw(ctx, -nameInputW/2, -side/2 + padding, nameInputW, nameInputH);
+
+        // bottoni
+        const btnWidth = side * 0.1;
+        const btnHeight = side  * 0.4;
+        this.rightBtn.draw(ctx, side/2 - btnWidth - padding, -btnHeight/2, btnWidth, btnHeight);
+        this.leftBtn.draw(ctx, -side/2 + padding, -btnHeight/2, btnWidth, btnHeight);
+        const okBtnW = side * 0.4;
+        const okBtnH = side * 0.1;
+        this.okBtn.draw(ctx, -okBtnW/2, side/2 - okBtnH - padding, okBtnW, okBtnH);
+
+        ctx.restore();
     }
 
     handleMessage(message: ServerMsg) {
@@ -327,4 +343,3 @@ export class LobbyClient {
         return this.myId ? this.people[this.myId] : null;
     }
 } 
-
