@@ -153,6 +153,7 @@ export class LobbyClient {
                     character: this.characterNames[this.selectedCharacterIndex]
                 }
             }
+            else alert("insert a nickname")
         });
         this.okBtn.setColors({ main: "#58a515" })
     }
