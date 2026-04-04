@@ -1,4 +1,4 @@
-import { Person, ClientMsg, ClientInitMsg, ServerMsg, mod, OutgoingServerMsg, IncomingClientMsg, ServerUpdateMsg } from './common';
+import { Person, ClientMsg, ClientInitMsg, ServerMsg, mod, OutgoingServerMsg, IncomingClientMsg, ServerUpdateMsg, PERSON_SPEED, smoothChange } from './common';
 import { Button, TextInput } from './client/ui-elements';
 
 const EPSILON = 0.000001;
@@ -70,7 +70,6 @@ export class LobbyServer {
                     const newPerson: Person = {
                         x: 0,
                         y: 0,
-                        speed: 5,
                         name: payload.name,
                         character: payload.character,
                     };
@@ -104,8 +103,8 @@ import { getCharacterDrawFunction, getCharacterNames } from './client/characters
 import { UserInput } from './client/user-input';
 
 type ClientPerson = Person & {
-    xTarget?: number;
-    yTarget?: number;
+    xTarget: number;
+    yTarget: number;
 };
 
 export class LobbyClient {
@@ -159,31 +158,26 @@ export class LobbyClient {
     }
 
     draw(ctx: CanvasRenderingContext2D, dt: number) {
-        const {
-            screenW, screenH, zoom,
-            xMoveDirection, yMoveDirection
-        } = this.userInput;
-
         const me = this.getMe();
-        if (me) this.drawLobby(ctx, me);
+        if (me) this.drawLobby(ctx, me, dt);
         else    this.drawCharacterSelect(ctx);
     }
 
-    drawLobby(ctx: CanvasRenderingContext2D, me: Person) {
+    drawLobby(ctx: CanvasRenderingContext2D, me: ClientPerson, dt: number) {
         const {
             screenW, screenH, zoom,
             xMoveDirection, yMoveDirection
         } = this.userInput;
 
         // gestione movimento
-        me.x += xMoveDirection * me.speed;
-        me.y += yMoveDirection * me.speed;
+        me.xTarget = me.xTarget + xMoveDirection * dt * PERSON_SPEED;
+        me.yTarget = me.yTarget + yMoveDirection * dt * PERSON_SPEED;
 
         // controllo che il giocatore non esca dallo spazio di gioco
-        if (me.y - personH/2 < worldBounds.top) me.y = worldBounds.top + personH/2 + EPSILON;
-        if (me.y + personH/2 > worldBounds.bottom) me.y = worldBounds.bottom - personH/2 - EPSILON;
-        if (me.x - personW/2 < worldBounds.left) me.x = worldBounds.left + personW/2 + EPSILON;
-        if (me.x + personW/2 > worldBounds.right) me.x = worldBounds.right - personW/2 - EPSILON;
+        if (me.yTarget - personH/2 < worldBounds.top) me.yTarget = worldBounds.top + personH/2 + EPSILON;
+        if (me.yTarget + personH/2 > worldBounds.bottom) me.yTarget = worldBounds.bottom - personH/2 - EPSILON;
+        if (me.xTarget - personW/2 < worldBounds.left) me.xTarget = worldBounds.left + personW/2 + EPSILON;
+        if (me.xTarget + personW/2 > worldBounds.right) me.xTarget = worldBounds.right - personW/2 - EPSILON;
 
         // la camera segue il giocatore
         this.camera.x = me.x;
@@ -208,12 +202,13 @@ export class LobbyClient {
         ctx.fillStyle = "#58a515";
         ctx.fill();
 
-        // disegna le persone
-        Object.entries(this.people).forEach(([id, person]) => {
-            if (id !== this.myId && person.xTarget) {
-                person.x += (person.xTarget - person.x) * 0.3;
-                person.y += (person.yTarget - person.y) * 0.3;
-            }
+        // sposta le persone e disegnale
+        Object.values(this.people).forEach((person) => {
+            if (person.xTarget)
+                person.x = smoothChange(person.x, person.xTarget, dt, 0.05);
+            if (person.yTarget)
+                person.y = smoothChange(person.y, person.yTarget, dt, 0.05);
+
             const drawPerson = getCharacterDrawFunction(person.character);
             drawPerson(ctx, person.x, person.y, personW, personH, );
             this.drawPersonName(ctx, person);
@@ -290,7 +285,12 @@ export class LobbyClient {
     handleMessage(message: ServerMsg) {
         if (message.kind === "init") {
             this.myId = message.yourId;
-            this.people = message.people;
+            const clientPeople = message.people as Record<string, ClientPerson>;
+            Object.values(clientPeople).forEach(person => {
+                person.xTarget = person.x;
+                person.yTarget = person.y;
+            });
+            this.people = clientPeople;
         }
         else if (message.kind === "nameIsTaken") {
             alert("nickname is already taken");
@@ -298,7 +298,7 @@ export class LobbyClient {
         else if (message.kind === "update") {
             Object.entries(message.people).forEach(entry => {
                 const id: string = entry[0];
-                const updatedPerson: any = entry[1];
+                const updatedPerson: Person = entry[1];
                 if (id !== this.myId) {
                     const personToUpdate = this.people[id];
                     if (personToUpdate) {
@@ -306,7 +306,12 @@ export class LobbyClient {
                         personToUpdate.yTarget = updatedPerson.y;
                     }
                 }
-                if (!this.people[id]) this.people[id] = updatedPerson;
+                if (!this.people[id]) {
+                    const clientPerson = updatedPerson as ClientPerson;
+                    clientPerson.xTarget = clientPerson.x;
+                    clientPerson.yTarget = clientPerson.y;
+                    this.people[id] = clientPerson;
+                }
             });
         }
         else if (message.kind === "exit") {
@@ -340,7 +345,7 @@ export class LobbyClient {
         return messages;
     }
 
-    getMe(): Person | null {
+    getMe(): ClientPerson | null {
         return this.myId ? this.people[this.myId] : null;
     }
 } 

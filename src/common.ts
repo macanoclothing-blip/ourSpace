@@ -1,9 +1,9 @@
 export const TICK_FREQUENCY = 20; // ticks per second
+export const PERSON_SPEED = 300;
 
 export type Person = {
     x: number;
     y: number;
-    speed: number;
     name: string;
     character: string;
 };
@@ -75,4 +75,7 @@ export type Rectangle = {
 
 export const mod = (n: number, m: number) => ((n % m) + m) % m;
 
+export const smoothChange = (from: number, to: number, dt: number, halfLife: number): number => {
+    return to + (from - to) * Math.pow(2, -dt / halfLife)
+}
 

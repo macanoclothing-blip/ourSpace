@@ -79,12 +79,18 @@ wsServer.on("connection", (ws, req) => {
 });
 
 
+let lastTickTime = Date.now();
+
 function tick(){
+    const now = Date.now();
+    const dt = (now - lastTickTime) / 1000;
+    lastTickTime = now;
+
     const messages = incomingMessages;
     incomingMessages = [];
     let outgoingMessages: OutgoingServerMsg[];
 
-    outgoingMessages = lobby.tick(messages, 0);
+    outgoingMessages = lobby.tick(messages, dt);
     outgoingMessages.forEach(message => {
         const messageString = JSON.stringify(message.payload);
         wsServer.clients.forEach(socket => {

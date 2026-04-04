@@ -8,8 +8,13 @@ const ctx: CanvasRenderingContext2D = playground.getContext("2d")!;
 export const userInput = new UserInput(playground);
 export const lobby = new LobbyClient(userInput);
 
-function draw() {
-    lobby.draw(ctx, 0);
+let lastFrameTime = performance.now();
+
+function draw(timestamp: number) {
+    const dt = (timestamp - lastFrameTime) / 1000; // Convert to seconds
+    lastFrameTime = timestamp;
+
+    lobby.draw(ctx, dt);
     requestAnimationFrame(draw);
 }
 requestAnimationFrame(draw);
