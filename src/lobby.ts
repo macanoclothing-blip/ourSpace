@@ -1,5 +1,64 @@
-import { Person, ClientMsg, ClientInitMsg, ServerMsg, mod, OutgoingServerMsg, IncomingClientMsg, ServerUpdateMsg, PERSON_SPEED, smoothChange } from './common';
+import { mod, Player, smoothChange } from './common';
+import { IncomingMsg, OutgoingMsg } from './server';
 import { Button, TextInput } from './client/ui-elements';
+
+const PERSON_SPEED = 300;
+
+type Person = Player & {
+    x: number;
+    y: number;
+};
+
+// +messaggi
+type ServerInitMsg = {
+    kind: "init";
+    yourId: string;
+    people: Record<string, Person>;
+};
+
+type ServerNameIsTakenMsg = {
+    kind: "nameIsTaken";
+};
+
+type ServerUpdateMsg = {
+    kind: "update";
+    people: Record<string, Person>;
+};
+
+type ServerExitMsg = {
+    kind: "exit";
+    id: string;
+};
+
+type LobbyServerMsg =
+    | ServerInitMsg
+    | ServerNameIsTakenMsg
+    | ServerUpdateMsg 
+    | ServerExitMsg;
+
+type ClientInitMsg = {
+    kind: "init";
+    name: string;
+    character: string;
+};
+
+type ClientMoveMsg = {
+    kind: "move";
+    x: number;
+    y: number;
+};
+
+type ClientStartGameMsg = {
+    kind: "startGame";
+    game: string
+};
+
+type LobbyClientMsg = 
+    | ClientInitMsg 
+    | ClientStartGameMsg 
+    | ClientMoveMsg;
+// -messaggi
+
 
 const EPSILON = 0.000001;
 
@@ -18,13 +77,20 @@ const personH = 120;
 ////// SERVER ////////
 //////////////////////
 
+export type GameStartFunction = (
+    game: string,
+    players: Record<string, Player>
+) => void;
+
 export class LobbyServer {
     public people: Record<string, Person>;
-    public outgoingMessages: OutgoingServerMsg[];
+    public outgoingMessages: OutgoingMsg[];
+    public onGameStart: GameStartFunction;
 
-    constructor() {
+    constructor(onGameStart: GameStartFunction) {
         this.people = {};
         this.outgoingMessages = [];
+        this.onGameStart = onGameStart;
     }
 
     clientConnected(id: string) {
@@ -48,16 +114,16 @@ export class LobbyServer {
         });
     }
 
-    tick(incomingMessages: IncomingClientMsg[], dt: number): OutgoingServerMsg[] {
-        const messages: OutgoingServerMsg[] = this.outgoingMessages;
+    tick(incomingMessages: IncomingMsg[], dt: number): OutgoingMsg[] {
+        const messages: OutgoingMsg[] = this.outgoingMessages;
         this.outgoingMessages = [];
-
         const updatedPeople: Record<string, Person> = {};
+
         incomingMessages.forEach(message => {
             const clientId: string = message.clientId;
-            const payload: ClientMsg = message.payload;
+            const payload: LobbyClientMsg = message.payload;
+
             if (payload.kind === "init") {
-                // TODO optimisable
                 if (Object.values(this.people).find(p => p.name === payload.name)) {
                     this.outgoingMessages.push({
                         clientId: clientId,
@@ -83,6 +149,10 @@ export class LobbyServer {
                 person.y = payload.y
                 updatedPeople[clientId] = person;
             }
+            else if (payload.kind === "startGame") {
+                const players = people2players(this.people);
+                this.onGameStart(payload.game, players);
+            }
         });
         // mandiamo il messaggio "update" a tutti i client
         const updateMessage: ServerUpdateMsg = {
@@ -93,6 +163,15 @@ export class LobbyServer {
 
         return messages;
     }
+}
+
+const people2players = (people: Record<string, Person>): Record<string, Player> => {
+    const players = {};
+    Object.entries(people).forEach(([id, person]) => {
+        const { name, character } = person;
+        players[id] = { name, character };
+    })
+    return players;
 }
 
 //////////////////////
@@ -282,7 +361,7 @@ export class LobbyClient {
         ctx.restore();
     }
 
-    handleMessage(message: ServerMsg) {
+    handleMessage(message: LobbyServerMsg) {
         if (message.kind === "init") {
             this.myId = message.yourId;
             const clientPeople = message.people as Record<string, ClientPerson>;
@@ -319,8 +398,8 @@ export class LobbyClient {
         }
     }
 
-    flushMessages(): ClientMsg[] {
-        const messages: ClientMsg[] = [];
+    flushMessages(): LobbyClientMsg[] {
+        const messages: LobbyClientMsg[] = [];
 
         if (this.initMessage) {
             messages.push(this.initMessage);
