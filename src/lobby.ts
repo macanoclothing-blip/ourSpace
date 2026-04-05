@@ -170,12 +170,9 @@ export class LobbyServer {
     }
 
     tick(incomingMessages: IncomingMsg[], dt: number): OutgoingMsg[] {
-        const messages: OutgoingMsg[] = [];
-        const updatedPeople: Record<string, Person> = {};
-        
-        // Add any pending outgoing messages
-        messages.push(...this.outgoingMessages);
+        const messages: OutgoingMsg[] = this.outgoingMessages;
         this.outgoingMessages = [];
+        const updatedPeople: Record<string, Person> = {};
 
         // Separate lobby messages from game messages and group game messages by gameId
         const lobbyMessages: IncomingMsg[] = [];
@@ -437,10 +434,7 @@ export class LobbyClient {
 
     public startGameBtn: Button;
 
-    public initMessage: ClientInitMsg | null = null;
-    public startGameMessage: ClientStartGameMsg | null = null;
-    public gameProposalMessage: ClientGameProposalMsg | null = null;
-    public gameProposalAcceptMessage: ClientGameProposalAcceptMsg | null = null;
+    public outgoingMessages: any[] = [];
     
     // Game proposal tracking
     public currentProposalId: string | null = null;
@@ -470,11 +464,11 @@ export class LobbyClient {
             if (this.getMe()) return;
             const name = this.nameInput.getValue() || '';
             if (name.length) {
-                this.initMessage = {
+                this.outgoingMessages.push({
                     kind: "init",
                     name: name,
                     character: this.characterNames[this.selectedCharacterIndex]
-                }
+                });
             }
             else alert("insert a nickname")
         });
@@ -484,23 +478,23 @@ export class LobbyClient {
             if (this.currentProposalId) {
                 if (this.isProposer) {
                     // We're the proposer, start the game
-                    this.startGameMessage = {
+                    this.outgoingMessages.push({
                         kind: 'startGame',
                         proposalId: this.currentProposalId
-                    };
+                    });
                 }
                 else {
-                    this.gameProposalAcceptMessage = {
+                    this.outgoingMessages.push({
                         kind: 'gameProposalAccept',
                         proposalId: this.currentProposalId
-                    };
+                    });
                 }
             }
             else {
-                this.gameProposalMessage = {
+                this.outgoingMessages.push({
                     kind: 'gameProposal',
                     gameName: 'guess'
-                };
+                });
                 this.startGameBtn.setLabel('start game');
             }
         });
@@ -718,24 +712,8 @@ export class LobbyClient {
     }
 
     flushMessages(): any[] {
-        const messages: any[] = [];
-
-        if (this.initMessage) {
-            messages.push(this.initMessage);
-            this.initMessage = null;
-        }
-        if (this.gameProposalMessage) {
-            messages.push(this.gameProposalMessage);
-            this.gameProposalMessage = null;
-        }
-        if (this.gameProposalAcceptMessage) {
-            messages.push(this.gameProposalAcceptMessage);
-            this.gameProposalAcceptMessage = null;
-        }
-        if (this.startGameMessage) {
-            messages.push(this.startGameMessage);
-            this.startGameMessage = null;
-        }
+        const messages: any[] = this.outgoingMessages;
+        this.outgoingMessages = [];
 
         const me = this.getMe();
         if (me) {
@@ -756,6 +734,7 @@ export class LobbyClient {
             if (this.currentGame.isFinished()) {
                 this.currentGame = null;
                 this.currentGameId = null;
+                this.currentProposalId = null;
             }
             else {
                 const gameMessages = this.currentGame.flushMessages();
