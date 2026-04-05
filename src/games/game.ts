@@ -2,16 +2,12 @@ import { Player } from '../common';
 import { IncomingMsg, OutgoingMsg } from '../server';
 
 export abstract class GameServer {
-    protected players: Record<string, Player>;
-
-    constructor(players: Record<string, Player>) {
-        this.players = players;
-    }
-
+    abstract init(players: Record<string, Player>);
     abstract tick(
         incomingMessages: IncomingMsg[],
         dt: number
     ): OutgoingMsg[];
+    abstract isFinished(): boolean;
 }
 
 /////////////////////////////////////////
@@ -19,15 +15,17 @@ export abstract class GameServer {
 import { UserInput } from '../client/user-input';
 
 export abstract class GameClient {
-    protected players: Record<string, Player>;
     protected userInput: UserInput;
+    protected myId: string;
 
-    constructor(players: Record<string, Player>, userInput: UserInput) {
-        this.players = players;
+    constructor(userInput: UserInput, myId: string) {
         this.userInput = userInput;
+        this.myId = myId;
     }
 
+    abstract init(players: Record<string, Player>);
     abstract draw(ctx: CanvasRenderingContext2D, dt: number);
-    abstract handleMessage(message: object);
-    abstract flushMessages(): object[];
+    abstract handleMessage(message: any);
+    abstract flushMessages(): any[];
+    abstract isFinished(): boolean;
 }

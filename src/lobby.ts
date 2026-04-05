@@ -50,7 +50,7 @@ type ClientMoveMsg = {
 
 type ClientStartGameMsg = {
     kind: "startGame";
-    game: string
+    gameName: string;
 };
 
 type LobbyClientMsg = 
@@ -124,6 +124,8 @@ export class LobbyServer {
             const payload: LobbyClientMsg = message.payload;
 
             if (payload.kind === "init") {
+                console.log("gotten INIT");
+                console.log(message);
                 if (Object.values(this.people).find(p => p.name === payload.name)) {
                     this.outgoingMessages.push({
                         clientId: clientId,
@@ -150,8 +152,9 @@ export class LobbyServer {
                 updatedPeople[clientId] = person;
             }
             else if (payload.kind === "startGame") {
+                console.log("starting game");
                 const players = people2players(this.people);
-                this.onGameStart(payload.game, players);
+                this.onGameStart(payload.gameName, players);
             }
         });
         // mandiamo il messaggio "update" a tutti i client
@@ -203,7 +206,10 @@ export class LobbyClient {
     public okBtn: Button;
     public nameInput: TextInput;
 
+    public startGameBtn: Button;
+
     public initMessage: ClientInitMsg | null = null;
+    public startGameMessage: ClientStartGameMsg | null = null;
 
     constructor(userInput: UserInput) {
         this.userInput = userInput;
@@ -223,6 +229,7 @@ export class LobbyClient {
             this.selectedCharacterIndex = mod(this.selectedCharacterIndex - 1, this.characterNames.length);
         });
         this.okBtn = new Button('ok', userInput, () => {
+            if (this.getMe()) return;
             const name = this.nameInput.getValue() || '';
             if (name.length) {
                 this.initMessage = {
@@ -234,6 +241,13 @@ export class LobbyClient {
             else alert("insert a nickname")
         });
         this.okBtn.setColors({ main: "#58a515" })
+
+        this.startGameBtn = new Button('start game', userInput, () => {
+            this.startGameMessage = {
+                kind: 'startGame',
+                gameName: 'guess'
+            }
+        });
     }
 
     draw(ctx: CanvasRenderingContext2D, dt: number) {
@@ -294,6 +308,7 @@ export class LobbyClient {
         });
 
         ctx.restore();
+        this.startGameBtn.draw(ctx, screenW - 110, 10, 100, 30);
     }
 
     drawPersonName(ctx: CanvasRenderingContext2D, person: Person) {
@@ -404,6 +419,10 @@ export class LobbyClient {
         if (this.initMessage) {
             messages.push(this.initMessage);
             this.initMessage = null;
+        }
+        if (this.startGameMessage) {
+            messages.push(this.startGameMessage);
+            this.startGameMessage = null;
         }
 
         const me = this.getMe();

@@ -10,6 +10,7 @@ import {
 } from "./common";
 import { LobbyServer } from './lobby';
 import { GameServer } from './games/game';
+import { GuessGameServer } from './games/guess';
 
 export type IncomingMsg = {
     clientId: string,
@@ -80,8 +81,9 @@ wsServer.on("connection", (ws, req) => {
     ws.on("message", data => {
         try {
             const payload = JSON.parse(data);
+            console.log(payload);
 
-            if (payload.game)
+            if (payload.gameId)
                 incomingGameMessages.push({
                     clientId: ws.id,
                     payload: payload
@@ -101,9 +103,32 @@ wsServer.on("connection", (ws, req) => {
     });
 });
 
-let currentGame: GameServer = null;
-const whenGameStarted = (game: string, players: Record<string, Player>) => {
-    currentGame = {} as GameServer;
+let currentGame: GameServer | null = null;
+let currentGameId: string | null = null;
+let gameIdCounter: number = 0;
+const whenGameStarted = (gameName: string, players: Record<string, Player>) => {
+    // only one game at a time
+    if (currentGame) return;
+
+    if (gameName === 'guess')
+        currentGame = new GuessGameServer();
+    // else if (gameName === 'pong')
+    //     currentGame = new PongGameServer();
+
+    if (currentGame) {
+        gameIdCounter += 1;
+        currentGameId = gameIdCounter + '';
+        currentGame.init(players);
+
+        wsServer.clients.forEach(socket => {
+            socket.send(JSON.stringify({
+                kind: "gameStarted",
+                gameId: currentGameId,
+                gameName: gameName,
+                players: players
+            }));
+        })
+    }
 }
 
 const lobby = new LobbyServer(whenGameStarted);
@@ -114,14 +139,22 @@ function tick(){
     const dt = (now - lastTickTime) / 1000;
     lastTickTime = now;
 
-    const messages = incomingMessages;
+    let messages = incomingMessages;
     incomingMessages = [];
-
     let outgoingMessages: OutgoingMsg[];
-    if (currentGame)
-        outgoingMessages = currentGame.tick(messages, dt);
-    else
-        outgoingMessages = lobby.tick(messages, dt);
+    outgoingMessages = lobby.tick(messages, dt);
+
+    if (currentGame) {
+        messages = incomingGameMessages;
+        incomingGameMessages = [];
+        const gameOutgoingMessages = currentGame.tick(messages, dt);
+        gameOutgoingMessages.forEach(m => m.payload.gameId = currentGameId);
+        outgoingMessages = outgoingMessages.concat(gameOutgoingMessages);
+        if (currentGame.isFinished()) {
+            currentGame = null;
+            currentGameId = null;
+        }
+    }
 
     outgoingMessages.forEach(message => {
         const messageString = JSON.stringify(message.payload);
