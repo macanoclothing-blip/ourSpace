@@ -36,7 +36,10 @@ type LobbyServerMsg =
     | ServerInitMsg
     | ServerNameIsTakenMsg
     | ServerUpdateMsg 
-    | ServerExitMsg;
+    | ServerExitMsg
+    | GameStartedMsg
+    | GameEndedMsg
+    | GameMsg;
 
 type ClientInitMsg = {
     kind: "init";
@@ -58,7 +61,26 @@ type ClientStartGameMsg = {
 type LobbyClientMsg = 
     | ClientInitMsg 
     | ClientStartGameMsg 
-    | ClientMoveMsg;
+    | ClientMoveMsg
+    | GameMsg;
+
+type GameMsg = {
+    kind: "game";
+    gameId: string;
+    data: any;
+};
+
+type GameStartedMsg = {
+    kind: "gameStarted";
+    gameId: string;
+    gameName: string;
+    players: Record<string, Player>;
+};
+
+type GameEndedMsg = {
+    kind: "gameEnded";
+};
+
 // -messaggi
 
 
@@ -125,14 +147,14 @@ export class LobbyServer {
         const gameMessages: IncomingMsg[] = [];
         
         incomingMessages.forEach(message => {
-            if (message.payload.gameId) {
+            if (message.payload.kind === "game") {
                 gameMessages.push(message);
             } else {
                 lobbyMessages.push(message);
             }
         });
         
-        // Process lobby messages
+        // +lobby
         lobbyMessages.forEach(message => {
             const clientId: string = message.clientId;
             const payload: LobbyClientMsg = message.payload;
@@ -171,18 +193,6 @@ export class LobbyServer {
                 }
             }
         });
-        
-        // process game messages if in game
-        if (this.currentGame) {
-            const gameOutgoingMessages = this.currentGame.tick(gameMessages, dt);
-            gameOutgoingMessages.forEach(m => m.payload.gameId = this.currentGameId);
-            messages.push(...gameOutgoingMessages);
-            
-            if (this.currentGame.isFinished()) {
-                this.currentGame = null;
-                this.currentGameId = null;
-            }
-        }
 
         // mandiamo il messaggio "update" a tutti i client
         const updateMessage: ServerUpdateMsg = {
@@ -190,6 +200,35 @@ export class LobbyServer {
             people: updatedPeople
         };
         messages.push({ payload: updateMessage });
+        // -lobby
+        
+        // +game
+        if (this.currentGame && this.currentGameId) {
+            // Extract game data from GameMsg wrapper
+            const unwrappedGameMessages: IncomingMsg[] = gameMessages.map(msg => ({
+                clientId: msg.clientId,
+                payload: (msg.payload as GameMsg).data
+            }));
+            
+            const gameOutgoingMessages = this.currentGame.tick(unwrappedGameMessages, dt);
+            // Wrap game messages in GameMsg
+            gameOutgoingMessages.forEach(m => {
+                messages.push({
+                    clientId: m.clientId,
+                    payload: {
+                        kind: "game",
+                        gameId: this.currentGameId,
+                        data: m.payload
+                    }
+                });
+            });
+            
+            if (this.currentGame.isFinished()) {
+                this.currentGame = null;
+                this.currentGameId = null;
+            }
+        }
+        // -game
 
         return messages;
     }
@@ -435,7 +474,7 @@ export class LobbyClient {
         ctx.restore();
     }
 
-    handleMessage(message: LobbyServerMsg | any) {
+    handleMessage(message: LobbyServerMsg) {
         if (message.kind === "gameStarted") {
             if (this.currentGame) return;
             this.currentGame = new GuessGameClient(this.userInput, this.myId!);
@@ -446,8 +485,10 @@ export class LobbyClient {
             this.currentGame = null;
             this.currentGameId = null;
         }
-        else if (this.currentGame && message.gameId === this.currentGameId) {
-            this.currentGame.handleMessage(message);
+        else if (message.kind === "game") {
+            if (this.currentGame && message.gameId === this.currentGameId) {
+                this.currentGame.handleMessage(message.data);
+            }
         }
         else if (message.kind === "init") {
             this.myId = message.yourId;
@@ -462,7 +503,8 @@ export class LobbyClient {
             alert("nickname is already taken");
         }
         else if (message.kind === "update") {
-            Object.entries(message.people as Record<string, Person>).forEach(entry => {
+            const updateMsg = message;
+            Object.entries(updateMsg.people as Record<string, Person>).forEach(entry => {
                 const id: string = entry[0];
                 const updatedPerson: Person = entry[1];
                 if (id !== this.myId) {
@@ -520,8 +562,11 @@ export class LobbyClient {
             else {
                 const gameMessages = this.currentGame.flushMessages();
                 gameMessages.forEach((message) => {
-                    message.gameId = this.currentGameId;
-                    messages.push(message);
+                    messages.push({
+                        kind: "game",
+                        gameId: this.currentGameId!,
+                        data: message
+                    });
                 })
             }
         }

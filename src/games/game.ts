@@ -3,10 +3,12 @@ import { IncomingMsg, OutgoingMsg } from '../server';
 
 export abstract class GameServer {
     abstract init(players: Record<string, Player>);
+
     abstract tick(
         incomingMessages: IncomingMsg[],
         dt: number
     ): OutgoingMsg[];
+
     abstract isFinished(): boolean;
 }
 
