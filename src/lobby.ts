@@ -236,11 +236,6 @@ export class LobbyServer {
                     const gameStartedMessage = this.startGameFromProposal();
                     if (gameStartedMessage) messages.push(gameStartedMessage);
                 } 
-                // else {
-                //     // Regular game start (for backward compatibility)
-                //     const gameStartedMessage = this.startGame(payload.gameName);
-                //     if (gameStartedMessage) messages.push(gameStartedMessage);
-                // }
             }
         });
 
@@ -354,12 +349,7 @@ export class LobbyServer {
     private startGameFromProposal(): OutgoingMsg | null {
         if (this.currentProposal === null) return null;
         
-        const { gameName, proposerId, acceptedPlayerIds } = this.currentProposal;
-        
-        // Need at least 2 players (proposer + at least one other)
-        if (acceptedPlayerIds.size < 2) {
-            return null;
-        }
+        const { gameName, acceptedPlayerIds } = this.currentProposal;
         
         let game: GameServer | null = null;
         
