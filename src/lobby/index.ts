@@ -1,8 +1,8 @@
 import { PERSON_W, PERSON_H, Player, smoothChange } from '../common';
 import { IncomingMsg, OutgoingMsg } from '../server';
-import { Button, TextInput } from '../client/ui-elements';
+import { Button } from '../client/ui-elements';
 import { GameServer } from '../games/game';
-import { GuessGameServer } from '../games/guess';
+import { GAMES } from '../games/index'
 
 const PERSON_SPEED = 300;
 
@@ -34,9 +34,15 @@ type ServerExitMsg = {
 
 type ServerGameProposalMsg = {
     kind: "gameProposal";
-    gameName: string;
+    gameKey: string;
     proposerId: string;
     proposalId: string;
+};
+
+type ServerGameProposalAcceptedMsg = {
+    kind: "gameProposalAccepted";
+    proposalId: string;
+    accepterId: string;
 };
 
 type LobbyServerMsg =
@@ -45,6 +51,7 @@ type LobbyServerMsg =
     | ServerUpdateMsg 
     | ServerExitMsg
     | ServerGameProposalMsg
+    | ServerGameProposalAcceptedMsg
     | GameStartedMsg
     | GameMsg;
 
@@ -62,7 +69,7 @@ type ClientMoveMsg = {
 
 type ClientGameProposalMsg = {
     kind: "gameProposal";
-    gameName: string;
+    gameKey: string;
 };
 
 type ClientGameProposalAcceptMsg = {
@@ -92,13 +99,13 @@ type GameMsg = {
 type GameStartedMsg = {
     kind: "gameStarted";
     gameId: string;
-    gameName: string;
+    gameKey: string;
     players: Record<string, Player>;
 };
 // -messaggi
 
 
-const EPSILON = 0.000001;
+const EPSILON = 0.0001;
 
 const worldW = 1000, worldH = 600;
 const worldBounds = {
@@ -118,12 +125,11 @@ export class LobbyServer {
     public games: Record<string, GameServer> = {};
     private gameIdCounter: number = 0;
     
-    // Game proposal tracking
     private currentProposal: {
-        gameName: string;
+        gameKey: string;
         proposerId: string;
         proposalId: string;
-        acceptedPlayerIds: Set<string>; // Players who accepted the proposal
+        acceptedPlayerIds: Set<string>;
     } | null = null;
     private proposalIdCounter: number = 0;
 
@@ -151,7 +157,7 @@ export class LobbyServer {
             this.currentProposal = null;
         }
         
-        // If this client accepted a proposal, remove them from accepted players
+        // If this client accepted the current proposal, remove them from accepted players
         if (this.currentProposal) {
             this.currentProposal.acceptedPlayerIds.delete(id);
         }
@@ -219,11 +225,19 @@ export class LobbyServer {
                 updatedPeople[clientId] = person;
             }
             else if (payload.kind === "gameProposal") {
-                this.handleGameProposal(clientId, payload.gameName);
+                this.handleGameProposal(clientId, payload.gameKey);
             }
             else if (payload.kind === "gameProposalAccept") {
-                if (this.currentProposal && this.currentProposal.proposalId === payload.proposalId)
+                if (this.currentProposal && this.currentProposal.proposalId === payload.proposalId) {
                     this.currentProposal.acceptedPlayerIds.add(clientId);
+                    messages.push({
+                        payload: {
+                            kind: 'gameProposalAccepted',
+                            proposalId: payload.proposalId,
+                            accepterId: clientId
+                        } as ServerGameProposalAcceptedMsg
+                    })
+                }
             }
             else if (payload.kind === "startGame") {
                 // Check if this is the proposer starting a proposed game
@@ -243,7 +257,6 @@ export class LobbyServer {
         // -lobby
         
         // +game
-        // Process each game
         Object.entries(this.games).forEach(([gameId, game]) => {
             // Get messages for this game
             const gameMsgs = gameMessagesByGameId[gameId] || [];
@@ -265,66 +278,26 @@ export class LobbyServer {
                         kind: "game",
                         gameId: gameId,
                         data: m.payload
-                    }
+                    } as GameMsg
                 });
             });
             
-            // Remove finished games
-            if (game.isFinished()) {
-                delete this.games[gameId];
-            }
+            if (game.isFinished()) delete this.games[gameId];
         });
         // -game
 
         return messages;
     }
     
-    private startGame(gameName: string): OutgoingMsg | null {
-        let game: GameServer | null = null;
-        
-        if (gameName === 'guess')
-            game = new GuessGameServer();
-        // else if (gameName === 'pong')
-        //     game = new PongGameServer();
-
-        if (!game) return null;
-
-        this.gameIdCounter += 1;
-        const gameId = this.gameIdCounter + '';
-        const players = this.getPlayers();
-        game.init(players);
-        this.games[gameId] = game;
-        
-        return {
-            payload: {
-                kind: "gameStarted",
-                gameId: gameId,
-                gameName: gameName,
-                players: players
-            }
-        };
-    }
-    
-    private getPlayers(): Record<string, Player> {
-        const players = {};
-        Object.entries(this.people).forEach(([id, person]) => {
-            const { name, character } = person;
-            players[id] = { name, character };
-        })
-        return players;
-    }
-    
-    private handleGameProposal(clientId: string, gameName: string): void {
-        // Only allow one proposal at a time
-        if (this.currentProposal !== null) {
-            return;
-        }
+    private handleGameProposal(clientId: string, gameKey: string): void {
+        // one proposal at a time
+        if (this.currentProposal !== null) return;
         
         this.proposalIdCounter += 1;
         const proposalId = this.proposalIdCounter + '';
         
         this.currentProposal = {
-            gameName,
+            gameKey: gameKey,
             proposerId: clientId,
             proposalId,
             acceptedPlayerIds: new Set([clientId]) // Proposer auto-accepts
@@ -334,7 +307,7 @@ export class LobbyServer {
         this.outgoingMessages.push({
             payload: {
                 kind: 'gameProposal',
-                gameName,
+                gameKey,
                 proposerId: clientId,
                 proposalId
             } as ServerGameProposalMsg
@@ -344,17 +317,11 @@ export class LobbyServer {
     private startGameFromProposal(): OutgoingMsg | null {
         if (this.currentProposal === null) return null;
         
-        const { gameName, acceptedPlayerIds } = this.currentProposal;
+        const { gameKey, acceptedPlayerIds } = this.currentProposal;
+        const gameInfo = GAMES[gameKey];
+        if (!gameInfo) return null;
+        const game: GameServer = new gameInfo.server()
         
-        let game: GameServer | null = null;
-        
-        if (gameName === 'guess')
-            game = new GuessGameServer();
-        // else if (gameName === 'pong')
-        //     game = new PongGameServer();
-
-        if (!game) return null;
-
         this.gameIdCounter += 1;
         const gameId = this.gameIdCounter + '';
         
@@ -369,7 +336,7 @@ export class LobbyServer {
                 };
             }
         });
-        
+
         game.init(players);
         this.games[gameId] = game;
         
@@ -378,9 +345,7 @@ export class LobbyServer {
         return {
             payload: {
                 kind: "gameStarted",
-                gameId: gameId,
-                gameName: gameName,
-                players: players
+                gameId, gameKey, players
             }
         };
     }
@@ -391,10 +356,10 @@ export class LobbyServer {
 //////////////////////
 
 import { CharacterSelect } from './character-select';
+import { GameSelect } from './game-select';
 import { getCharacterDrawFunction } from '../client/characters';
 import { UserInput } from '../client/user-input';
 import { GameClient } from '../games/game';
-import { GuessGameClient } from '../games/guess';
 
 type ClientPerson = Person & {
     xTarget: number;
@@ -411,14 +376,11 @@ export class LobbyClient {
     public camera: { x: number, y: number, zoom: number };
 
     public characterSelect: CharacterSelect;
+    public gameSelect: GameSelect;
 
-    public startGameBtn: Button;
+    public gamesBtn: Button;
 
-    public outgoingMessages: any[] = [];
-    
-    // Game proposal tracking
-    public currentProposalId: string | null = null;
-    public isProposer: boolean = false;
+    public outgoingMessages: LobbyClientMsg[] = [];
     
     public currentGame: GameClient | null = null;
     public currentGameId: string | null = null;
@@ -438,34 +400,37 @@ export class LobbyClient {
             });
         });
 
-        this.startGameBtn = new Button('propose game', userInput, () => {
-            if (this.currentProposalId) {
-                if (this.isProposer) {
-                    this.outgoingMessages.push({
-                        kind: 'startGame',
-                        proposalId: this.currentProposalId
-                    });
-                }
-                else {
-                    this.outgoingMessages.push({
-                        kind: 'gameProposalAccept',
-                        proposalId: this.currentProposalId
-                    });
-                }
-            }
-            else {
-                this.outgoingMessages.push({
-                    kind: 'gameProposal',
-                    gameName: 'guess'
-                });
-                this.startGameBtn.setLabel('start game');
-            }
+        const onGameSelected = (gameKey: string) => {
+            this.outgoingMessages.push({
+                kind: 'gameProposal',
+                gameKey: gameKey
+            });
+        };
+        const onGameJoined = (proposalId: string) => {
+            this.outgoingMessages.push({
+                kind: 'gameProposalAccept',
+                proposalId
+            });
+        };
+        const onGameStarted = (proposalId: string) => {
+            this.outgoingMessages.push({
+                kind: 'startGame',
+                proposalId
+            });
+        };
+        this.gameSelect = new GameSelect( userInput,
+            onGameSelected, onGameJoined, onGameStarted);
+
+        this.gamesBtn = new Button('Games', userInput, () => {
+            this.gameSelect.show();
         });
     }
 
     draw(ctx: CanvasRenderingContext2D, dt: number) {
         if (this.currentGame) {
             this.currentGame.draw(ctx, dt);
+        } else if (this.gameSelect.isShowing()) {
+            this.gameSelect.draw(ctx);
         } else {
             const me = this.getMe();
             if (me) this.drawLobby(ctx, me, dt);
@@ -526,17 +491,7 @@ export class LobbyClient {
 
         ctx.restore();
         
-        // Show appropriate button based on proposal state
-        if (this.currentProposalId) {
-            if (this.isProposer) {
-                this.startGameBtn.setLabel('start game');
-            } else {
-                this.startGameBtn.setLabel('join game');
-            }
-        } else {
-            this.startGameBtn.setLabel('propose game');
-        }
-        this.startGameBtn.draw(ctx, screenW - 110, 10, 100, 30);
+        this.gamesBtn.draw(ctx, screenW - 110, 10, 100, 30);
     }
 
     drawPersonName(ctx: CanvasRenderingContext2D, person: Person) {
@@ -566,20 +521,29 @@ export class LobbyClient {
         if (message.kind === "gameStarted") {
             if (this.currentGame) return; // ignore if already in a game
             if (!message.players[this.myId]) { // ignore if i'm not in players list
-                this.currentProposalId = null;
-                this.isProposer = false;
+                this.gameSelect.scratchGameProposal();
                 return;
             }
-            this.currentGame = new GuessGameClient(this.userInput, this.myId!);
+            const gameInfo = GAMES[message.gameKey];
+            if (!gameInfo) return;
+            this.currentGame = new gameInfo.client(this.userInput, this.myId!);
             this.currentGame.init(message.players);
             this.currentGameId = message.gameId;
-            
-            this.currentProposalId = null;
-            this.isProposer = false;
+
+            this.gameSelect.scratchGameProposal();
         }
         else if (message.kind === "gameProposal") {
-            this.currentProposalId = message.proposalId;
-            this.isProposer = message.proposerId === this.myId
+            const { proposerId, proposalId, gameKey } = message;
+            const proposer = this.people[proposerId];
+            const isProposer = proposerId === this.myId;
+            this.gameSelect.initGameProposal(proposalId, proposerId, proposer, isProposer, gameKey);
+        }
+        else if (message.kind === "gameProposalAccepted") {
+            console.log("ACCEPTED");
+            console.log(message);
+            const { proposalId, accepterId } = message;
+            const accepter = this.people[message.accepterId];
+            this.gameSelect.addPlayerToProposal(proposalId, accepterId, accepter);
         }
         else if (message.kind === "game") {
             if (this.currentGame && message.gameId === this.currentGameId) {
@@ -646,7 +610,6 @@ export class LobbyClient {
             if (this.currentGame.isFinished()) {
                 this.currentGame = null;
                 this.currentGameId = null;
-                this.currentProposalId = null;
             }
             else {
                 const gameMessages = this.currentGame.flushMessages();

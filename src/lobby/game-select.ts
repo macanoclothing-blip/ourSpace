@@ -1,0 +1,179 @@
+import { mod, Player, PERSON_W, PERSON_H } from '../common';
+import { Button } from '../client/ui-elements';
+import { UserInput } from '../client/user-input';
+import { getCharacterDrawFunction } from '../client/characters';
+import { GAMES } from '../games/index'
+
+export class GameSelect {
+    private myId: string | null = null;
+    private userInput: UserInput;
+    private showing: boolean;
+    
+    private leftBtn: Button;
+    private rightBtn: Button;
+    private playBtn: Button;
+    private exitBtn: Button;
+
+    private gameKeys: string[];
+    private selectedGameKeyIndex: number;
+    private onGameSelected: (gameKey: string) => void;
+
+    private gameProposal: {
+        proposalId: string;
+        proposerId: string;
+        players: Record<string, Player>;
+        isProposer: boolean;
+        proposerName: string;
+        gameName: string;
+    } | null = null;
+
+    private joinedGame: boolean;
+    private joinBtn: Button;
+    private startBtn: Button;
+    private onGameJoined: (proposalId: string) => void;
+    private onGameStarted: (proposalId: string) => void;
+    
+    constructor(
+        userInput: UserInput,
+        onGameSelected: (gameKey: string) => void,
+        onGameJoined: (proposalId: string) => void,
+        onGameStarted: (proposalId: string) => void,
+    ) {
+        this.userInput = userInput;
+        this.onGameSelected = onGameSelected;
+        this.onGameJoined = onGameJoined;
+        this.onGameStarted = onGameStarted;
+        this.showing = false;
+        this.joinedGame = false;
+        this.gameKeys = Object.keys(GAMES);
+        this.selectedGameKeyIndex = 0;
+        
+        this.leftBtn = new Button('<', userInput, () => {
+            this.selectedGameKeyIndex = mod(this.selectedGameKeyIndex - 1, this.gameKeys.length);
+        });
+        
+        this.rightBtn = new Button('>', userInput, () => {
+            this.selectedGameKeyIndex = mod(this.selectedGameKeyIndex + 1, this.gameKeys.length);
+        });
+        
+        this.playBtn = new Button('play', userInput, () => {
+            if (this.gameProposal !== null) return;
+            const gameKey = this.gameKeys[this.selectedGameKeyIndex];
+            this.onGameSelected(gameKey);
+        });
+        this.playBtn.setColors({ main: "#58a515" });
+
+        this.exitBtn = new Button('exit', userInput, () => {
+            if (this.gameProposal !== null) return;
+            this.hide();
+        });
+        this.exitBtn.setColors({ main: "#a51515" });
+
+        this.joinBtn = new Button('join', userInput, () => {
+            if (this.gameProposal === null) return;
+            this.onGameJoined(this.gameProposal.proposalId);
+            this.joinedGame = true;
+        });
+
+        this.startBtn = new Button('start', userInput, () => {
+            if (this.gameProposal === null) return;
+            this.onGameStarted(this.gameProposal.proposalId);
+        });
+    }
+    
+    draw(ctx: CanvasRenderingContext2D) {
+        const { screenW, screenH } = this.userInput;
+        const side = Math.min(screenH, screenW);
+
+        ctx.fillStyle = "#eeeeee";
+        ctx.fillRect(0, 0, screenW, screenH);
+        ctx.save();
+        ctx.translate(screenW/2, screenH/2); // centra lo schermo
+
+        const borderWidth = 20;
+        ctx.beginPath();
+        ctx.rect(-side/2, -side/2, side, side);
+        ctx.clip();
+        ctx.strokeStyle = "#161616";
+        ctx.lineWidth = borderWidth;
+        ctx.fillStyle = "#acabab";
+        ctx.fill();
+        ctx.stroke();
+
+        if (this.gameProposal === null) {
+            const gameKey = this.gameKeys[this.selectedGameKeyIndex];
+            const gameName = GAMES[gameKey].name;
+            
+            ctx.fillStyle = "#000";
+            ctx.font = "bold 32px Arial";
+            ctx.textAlign = "center";
+            ctx.textBaseline = "middle";
+            ctx.fillText(gameName, 0, 0);
+            
+            const padding = borderWidth + 5;
+
+            // bottoni
+            const btnWidth = side * 0.1;
+            const btnHeight = side  * 0.4;
+            this.rightBtn.draw(ctx, side/2 - btnWidth - padding, -btnHeight/2, btnWidth, btnHeight);
+            this.leftBtn.draw(ctx, -side/2 + padding, -btnHeight/2, btnWidth, btnHeight);
+            const okBtnW = side * 0.3;
+            const okBtnH = side * 0.1;
+            this.exitBtn.draw(ctx, -side*0.4, side/2 - okBtnH - padding, okBtnW, okBtnH);
+            this.playBtn.draw(ctx, side*0.1, side/2 - okBtnH - padding, okBtnW, okBtnH);
+        }
+        else {
+            const { proposerName, gameName, players } = this.gameProposal;
+
+            ctx.fillStyle = "#000";
+            ctx.font = "bold 22px Arial";
+            ctx.textAlign = "center";
+            ctx.textBaseline = "top";
+            ctx.fillText(`${proposerName} wants to play ${gameName}`, 0, -side*0.4);
+
+            // TODO draw all players in gameProposal here using getCharacterDrawFunction
+
+            const padding = borderWidth + 5;
+            const btnW = side * 0.3;
+            const btnH = side * 0.1;
+            if (this.gameProposal.isProposer)
+                this.startBtn.draw(ctx, side*0.1, side/2 - btnH - padding, btnW, btnH);
+            else if (!this.joinedGame)
+                this.joinBtn.draw(ctx, -side*0.4, side/2 - btnH - padding, btnW, btnH);
+        }
+        ctx.restore();
+    }
+
+    setMyId(myId: string) {
+        this.myId = myId;
+    }
+
+    isProposer() {
+        return this.myId === this.gameProposal.proposerId;
+    }
+
+    initGameProposal(proposalId: string, proposerId: string, proposer: Player, isProposer: boolean, gameKey: string) {
+        const players = { [proposerId]: proposer };
+        const proposerName = players[proposerId].name;
+        const gameName = GAMES[gameKey].name;
+        this.gameProposal = {
+            proposalId, proposerId, players, isProposer,
+            proposerName, gameName
+        };
+        this.joinedGame = false;
+    }
+
+    addPlayerToProposal(proposalId: string, playerId: string, player: Player) {
+        if (this.gameProposal === null) return;
+        if (this.gameProposal.proposalId !== proposalId) return;
+        this.gameProposal.players[playerId] = player;
+    }
+
+    scratchGameProposal() {
+        this.gameProposal = null;
+    }
+
+    show() { this.showing = true; }
+    hide() { this.showing = false; }
+    isShowing() { return this.showing; }
+}

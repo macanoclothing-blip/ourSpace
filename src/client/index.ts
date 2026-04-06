@@ -27,8 +27,6 @@ export const socket = new WebSocket(wsConnectionString);
 
 socket.addEventListener("message", async event => {
     const incomingMessage = JSON.parse(event.data);
-    console.log(incomingMessage);
-
     lobby.handleMessage(incomingMessage);
 });
 

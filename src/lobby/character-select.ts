@@ -88,14 +88,4 @@ export class CharacterSelect {
 
         ctx.restore();
     }
-    
-    // Getter for the selected character (optional, can be removed if not needed)
-    getSelectedCharacter(): string {
-        return this.characterNames[this.selectedCharacterIndex];
-    }
-    
-    // Getter for the entered name (optional, can be removed if not needed)
-    getEnteredName(): string {
-        return this.nameInput.getValue() || '';
-    }
 }
