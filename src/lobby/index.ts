@@ -16,6 +16,12 @@ type ServerInitMsg = {
     kind: "init";
     yourId: string;
     people: Record<string, Person>;
+    gameProposal?: {
+        gameKey: string;
+        proposerId: string;
+        proposalId: string;
+        acceptedPlayerIds: string[];
+    }
 };
 
 type ServerNameIsTakenMsg = {
@@ -139,14 +145,22 @@ export class LobbyServer {
     }
 
     clientConnected(id: string) {
-        this.outgoingMessages.push({
+        const message = {
             clientId: id,
             payload: {
                 kind: 'init',
                 yourId: id,
                 people: this.people
+            } as ServerInitMsg
+        };
+        if (this.currentProposal)
+            message.payload.gameProposal = {
+                gameKey: this.currentProposal.gameKey,
+                proposerId: this.currentProposal.proposerId,
+                proposalId: this.currentProposal.proposalId,
+                acceptedPlayerIds: [...this.currentProposal.acceptedPlayerIds]
             }
-        });
+        this.outgoingMessages.push(message)
     }
 
     clientClosed(id: string) {
@@ -486,35 +500,13 @@ export class LobbyClient {
 
             const drawPerson = getCharacterDrawFunction(person.character);
             drawPerson(ctx, person.x, person.y, PERSON_W, PERSON_H, );
-            this.drawPersonName(ctx, person);
+            drawPersonName(ctx, person);
         });
 
         ctx.restore();
         
         this.gamesBtn.draw(ctx, screenW - 110, 10, 100, 30);
     }
-
-    drawPersonName(ctx: CanvasRenderingContext2D, person: Person) {
-        const fontSize = Math.floor(PERSON_H * 0.15);
-        const nameY = person.y - PERSON_H/2 - fontSize - PERSON_H*0.08;
-        ctx.font = `${fontSize}px Arial`;
-        const nameWidth = ctx.measureText(person.name).width;
-        const padding = 4;
-
-        ctx.fillStyle = "rgba(0, 0, 0, 0.5)"; 
-        ctx.fillRect(
-            person.x - (nameWidth / 2) - padding, 
-            nameY - padding, 
-            nameWidth + (padding * 2), 
-            fontSize + (padding * 2)
-        );
-        ctx.textAlign = "center";
-        ctx.textBaseline = "top";
-        ctx.lineWidth = 4;
-        ctx.fillStyle = "#eeeeee";
-        ctx.fillText(person.name, person.x, nameY);
-    }
-
 
 
     handleMessage(message: LobbyServerMsg) {
@@ -531,12 +523,14 @@ export class LobbyClient {
             this.currentGameId = message.gameId;
 
             this.gameSelect.scratchGameProposal();
+            this.gameSelect.hide();
         }
         else if (message.kind === "gameProposal") {
             const { proposerId, proposalId, gameKey } = message;
             const proposer = this.people[proposerId];
             const isProposer = proposerId === this.myId;
-            this.gameSelect.initGameProposal(proposalId, proposerId, proposer, isProposer, gameKey);
+            const players = {[proposerId]: proposer }
+            this.gameSelect.initGameProposal(proposalId, proposerId, players, isProposer, gameKey);
         }
         else if (message.kind === "gameProposalAccepted") {
             console.log("ACCEPTED");
@@ -558,6 +552,14 @@ export class LobbyClient {
                 person.yTarget = person.y;
             });
             this.people = clientPeople;
+
+            if (message.gameProposal) {
+                const { proposalId, proposerId, gameKey, acceptedPlayerIds } = message.gameProposal;
+                const isProposer = proposerId === this.myId;
+                const playersWhoAccepted: Record<string, Player> = {};
+                acceptedPlayerIds.forEach(id => playersWhoAccepted[id] = this.people[id]);
+                this.gameSelect.initGameProposal(proposalId, proposerId, playersWhoAccepted, isProposer, gameKey);
+            }
         }
         else if (message.kind === "nameIsTaken") {
             alert("nickname is already taken");
@@ -630,3 +632,24 @@ export class LobbyClient {
         return this.myId ? this.people[this.myId] : null;
     }
 } 
+
+export function drawPersonName(ctx: CanvasRenderingContext2D, person: Person) {
+    const fontSize = Math.floor(PERSON_H * 0.15);
+    const nameY = person.y - PERSON_H/2 - fontSize - PERSON_H*0.08;
+    ctx.font = `${fontSize}px Arial`;
+    const nameWidth = ctx.measureText(person.name).width;
+    const padding = 4;
+
+    ctx.fillStyle = "rgba(0, 0, 0, 0.5)"; 
+    ctx.fillRect(
+        person.x - (nameWidth / 2) - padding, 
+        nameY - padding, 
+        nameWidth + (padding * 2), 
+        fontSize + (padding * 2)
+    );
+    ctx.textAlign = "center";
+    ctx.textBaseline = "top";
+    ctx.lineWidth = 4;
+    ctx.fillStyle = "#eeeeee";
+    ctx.fillText(person.name, person.x, nameY);
+}

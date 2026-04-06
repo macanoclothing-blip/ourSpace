@@ -131,7 +131,27 @@ export class GameSelect {
             ctx.textBaseline = "top";
             ctx.fillText(`${proposerName} wants to play ${gameName}`, 0, -side*0.4);
 
-            // TODO draw all players in gameProposal here using getCharacterDrawFunction
+            // +players
+            const playersList = Object.values(players);
+            const playerSpacing = side * 0.2;
+            const startX = -((playersList.length - 1) * playerSpacing) / 2;
+            const playerH = side * 0.15;
+            const playerW = playerH * PERSON_W / PERSON_H;
+            
+            playersList.forEach((player, index) => {
+                const x = startX + index * playerSpacing;
+                const y = -side * 0.2;
+                
+                const drawPerson = getCharacterDrawFunction(player.character);
+                drawPerson(ctx, x, y, playerW, playerH);
+                
+                ctx.fillStyle = "#000";
+                ctx.font = "16px Arial";
+                ctx.textAlign = "center";
+                ctx.textBaseline = "top";
+                ctx.fillText(player.name, x, y + playerH/2 + 2);
+            });
+            // -players
 
             const padding = borderWidth + 5;
             const btnW = side * 0.3;
@@ -152,8 +172,8 @@ export class GameSelect {
         return this.myId === this.gameProposal.proposerId;
     }
 
-    initGameProposal(proposalId: string, proposerId: string, proposer: Player, isProposer: boolean, gameKey: string) {
-        const players = { [proposerId]: proposer };
+    initGameProposal(proposalId: string, proposerId: string, players: Record<string, Player>, isProposer: boolean, gameKey: string) {
+        // const players = { [proposerId]: proposer };
         const proposerName = players[proposerId].name;
         const gameName = GAMES[gameKey].name;
         this.gameProposal = {
