@@ -5,9 +5,8 @@ import { getCharacterDrawFunction } from '../client/characters';
 import { GAMES } from '../games/index'
 
 export class GameSelect {
-    private myId: string | null = null;
     private userInput: UserInput;
-    private showing: boolean;
+    private isVisible: boolean;
     
     private leftBtn: Button;
     private rightBtn: Button;
@@ -43,7 +42,7 @@ export class GameSelect {
         this.onGameSelected = onGameSelected;
         this.onGameJoined = onGameJoined;
         this.onGameStarted = onGameStarted;
-        this.showing = false;
+        this.isVisible = false;
         this.joinedGame = false;
         this.gameKeys = Object.keys(GAMES);
         this.selectedGameKeyIndex = 0;
@@ -58,6 +57,8 @@ export class GameSelect {
         
         this.playBtn = new Button('play', userInput, () => {
             if (this.gameProposal !== null) return;
+            if (!this.isShowing()) return; // bad hack
+
             const gameKey = this.gameKeys[this.selectedGameKeyIndex];
             this.onGameSelected(gameKey);
         });
@@ -65,18 +66,24 @@ export class GameSelect {
 
         this.exitBtn = new Button('exit', userInput, () => {
             if (this.gameProposal !== null) return;
+            if (!this.isShowing()) return; // bad hack
+
             this.hide();
         });
         this.exitBtn.setColors({ main: "#a51515" });
 
         this.joinBtn = new Button('join', userInput, () => {
             if (this.gameProposal === null) return;
+            if (!this.isShowing()) return; // bad hack
+
             this.onGameJoined(this.gameProposal.proposalId);
             this.joinedGame = true;
         });
 
         this.startBtn = new Button('start', userInput, () => {
             if (this.gameProposal === null) return;
+            if (!this.isShowing()) return; // bad hack
+
             this.onGameStarted(this.gameProposal.proposalId);
         });
     }
@@ -146,7 +153,6 @@ export class GameSelect {
                 drawPerson(ctx, x, y, playerW, playerH);
                 
                 ctx.fillStyle = "#000";
-                ctx.font = "16px Arial";
                 ctx.textAlign = "center";
                 ctx.textBaseline = "top";
                 ctx.fillText(player.name, x, y + playerH/2 + 2);
@@ -162,14 +168,6 @@ export class GameSelect {
                 this.joinBtn.draw(ctx, -side*0.4, side/2 - btnH - padding, btnW, btnH);
         }
         ctx.restore();
-    }
-
-    setMyId(myId: string) {
-        this.myId = myId;
-    }
-
-    isProposer() {
-        return this.myId === this.gameProposal.proposerId;
     }
 
     initGameProposal(proposalId: string, proposerId: string, players: Record<string, Player>, isProposer: boolean, gameKey: string) {
@@ -193,7 +191,7 @@ export class GameSelect {
         this.gameProposal = null;
     }
 
-    show() { this.showing = true; }
-    hide() { this.showing = false; }
-    isShowing() { return this.showing; }
+    show() { this.isVisible = true; }
+    hide() { this.isVisible = false; }
+    isShowing() { return this.isVisible; }
 }

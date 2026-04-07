@@ -13,12 +13,14 @@ export class CharacterSelect {
     private rightBtn: Button;
     private okBtn: Button;
     private nameInput: TextInput;
+    private selectionIsDone: boolean;
     
     private onCharacterSelected: (name: string, character: string) => void;
     
     constructor(userInput: UserInput, onCharacterSelected: (name: string, character: string) => void) {
         this.userInput = userInput;
         this.onCharacterSelected = onCharacterSelected;
+        this.selectionIsDone = false;
         
         this.characterNames = getCharacterNames();
         this.selectedCharacterIndex = 0;
@@ -34,10 +36,13 @@ export class CharacterSelect {
         });
         
         this.okBtn = new Button('ok', userInput, () => {
+            if (this.selectionIsDone) return; // bad hack
+
             const name = this.nameInput.getValue() || '';
             if (name.length) {
                 const character = this.characterNames[this.selectedCharacterIndex];
                 this.onCharacterSelected(name, character);
+                this.selectionIsDone = true;
             } else {
                 alert("insert a nickname");
             }
