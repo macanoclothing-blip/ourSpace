@@ -77,7 +77,6 @@ wsServer.on("connection", (ws, req) => {
     ws.on("message", data => {
         try {
             const payload = JSON.parse(data);
-            console.log(payload);
 
             incomingMessages.push({
                 clientId: ws.id,

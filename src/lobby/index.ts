@@ -12,6 +12,12 @@ type Person = Player & {
 };
 
 // +messaggi
+type GameMsg = {
+    kind: "game";
+    gameId: string;
+    data: any;
+};
+
 type ServerInitMsg = {
     kind: "init";
     yourId: string;
@@ -49,6 +55,13 @@ type ServerGameProposalAcceptedMsg = {
     kind: "gameProposalAccepted";
     proposalId: string;
     accepterId: string;
+};
+
+type GameStartedMsg = {
+    kind: "gameStarted";
+    gameId: string;
+    gameKey: string;
+    players: Record<string, Player>;
 };
 
 type LobbyServerMsg =
@@ -95,19 +108,6 @@ type LobbyClientMsg =
     | ClientGameProposalAcceptMsg
     | ClientStartGameMsg
     | GameMsg;
-
-type GameMsg = {
-    kind: "game";
-    gameId: string;
-    data: any;
-};
-
-type GameStartedMsg = {
-    kind: "gameStarted";
-    gameId: string;
-    gameKey: string;
-    players: Record<string, Player>;
-};
 // -messaggi
 
 
@@ -452,7 +452,7 @@ export class LobbyClient {
         }
     }
 
-    drawLobby(ctx: CanvasRenderingContext2D, me: ClientPerson, dt: number) {
+    private drawLobby(ctx: CanvasRenderingContext2D, me: ClientPerson, dt: number) {
         const {
             screenW, screenH, zoom,
             xMoveDirection, yMoveDirection
@@ -508,22 +508,19 @@ export class LobbyClient {
         this.gamesBtn.draw(ctx, screenW - 110, 10, 100, 30);
     }
 
-
     handleMessage(message: LobbyServerMsg) {
         if (message.kind === "gameStarted") {
-            if (this.currentGame) return; // ignore if already in a game
-            if (!message.players[this.myId]) { // ignore if i'm not in players list
-                this.gameSelect.scratchGameProposal();
-                return;
-            }
+            this.gameSelect.scratchGameProposal();
+            this.gameSelect.hide();
+
+            // ignore if already in a game of if i'm not in players list
+            if (this.currentGame || !message.players[this.myId]) return;
+
             const gameInfo = GAMES[message.gameKey];
             if (!gameInfo) return;
             this.currentGame = new gameInfo.client(this.userInput, this.myId!);
             this.currentGame.init(message.players);
             this.currentGameId = message.gameId;
-
-            this.gameSelect.scratchGameProposal();
-            this.gameSelect.hide();
         }
         else if (message.kind === "gameProposal") {
             const { proposerId, proposalId, gameKey } = message;
@@ -533,8 +530,6 @@ export class LobbyClient {
             this.gameSelect.initGameProposal(proposalId, proposerId, players, isProposer, gameKey);
         }
         else if (message.kind === "gameProposalAccepted") {
-            console.log("ACCEPTED");
-            console.log(message);
             const { proposalId, accepterId } = message;
             const accepter = this.people[message.accepterId];
             this.gameSelect.addPlayerToProposal(proposalId, accepterId, accepter);
@@ -589,7 +584,7 @@ export class LobbyClient {
         }
     }
 
-    flushMessages(): any[] {
+    flushMessages(): LobbyClientMsg[] {
         const messages: any[] = this.outgoingMessages;
         this.outgoingMessages = [];
 
@@ -628,7 +623,7 @@ export class LobbyClient {
         return messages;
     }
 
-    getMe(): ClientPerson | null {
+    private getMe(): ClientPerson | null {
         return this.myId ? this.people[this.myId] : null;
     }
 } 
