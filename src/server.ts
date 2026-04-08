@@ -3,11 +3,22 @@ import * as path from 'path';
 import * as https from 'https';
 import * as http from 'http';
 import { WebSocketServer } from 'ws';
-import { LobbyServer } from './lobby';
 
 import {
-    TICK_FREQUENCY, IncomingClientMsg, OutgoingServerMsg
+    TICK_FREQUENCY
 } from "./common";
+import { LobbyServer } from './lobby/index';
+
+export type IncomingMsg = {
+    clientId: string,
+    payload: any;
+};
+
+export type OutgoingMsg = {
+    clientId?: string; // if no clientId, message is broadcast
+    payload: any
+};
+
 
 const SERVER_PORT = process.env.OURSPACE_SERVER_PORT || 4242;
 const PUBLIC_FOLDER = process.env.OURSPACE_PUBLIC_FOLDER || 'build/public';
@@ -45,9 +56,12 @@ httpServer.on('request', (req, res) => {
 const wsServer = new WebSocketServer({ server: httpServer })
 console.log("Server ws in ascolto sulla porta " + SERVER_PORT);
 
+////////////////////////
+////// WS SERVER ///////
+////////////////////////
+
 let idCounter: number = 0;
-let incomingMessages: IncomingClientMsg[] = []; 
-const lobby = new LobbyServer();
+let incomingMessages: IncomingMsg[] = []; 
 
 wsServer.on("connection", (ws, req) => {
     const clientIp = req.socket.remoteAddress;
@@ -78,9 +92,9 @@ wsServer.on("connection", (ws, req) => {
     });
 });
 
+const lobby = new LobbyServer();
 
 let lastTickTime = Date.now();
-
 function tick(){
     const now = Date.now();
     const dt = (now - lastTickTime) / 1000;
@@ -88,9 +102,8 @@ function tick(){
 
     const messages = incomingMessages;
     incomingMessages = [];
-    let outgoingMessages: OutgoingServerMsg[];
+    const outgoingMessages = lobby.tick(messages, dt);
 
-    outgoingMessages = lobby.tick(messages, dt);
     outgoingMessages.forEach(message => {
         const messageString = JSON.stringify(message.payload);
         wsServer.clients.forEach(socket => {
