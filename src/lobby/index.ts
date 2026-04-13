@@ -457,12 +457,12 @@ export class LobbyClient {
     private drawLobby(ctx: CanvasRenderingContext2D, me: ClientPerson, dt: number) {
         const {
             screenW, screenH, zoom,
-            xMoveDirection, yMoveDirection
+            moveDirectionX, moveDirectionY
         } = this.userInput;
 
         // gestione movimento
-        me.xTarget = me.xTarget + xMoveDirection * dt * PERSON_SPEED;
-        me.yTarget = me.yTarget + yMoveDirection * dt * PERSON_SPEED;
+        me.xTarget = me.xTarget + moveDirectionX * dt * PERSON_SPEED;
+        me.yTarget = me.yTarget + moveDirectionY * dt * PERSON_SPEED;
 
         // controllo che il giocatore non esca dallo spazio di gioco
         if (me.yTarget - PERSON_H/2 < worldBounds.top) me.yTarget = worldBounds.top + PERSON_H/2 + EPSILON;
