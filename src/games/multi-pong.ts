@@ -1,4 +1,4 @@
-import { getCollisionSide, Player } from '../common';
+import { getCollisionSide } from '../common';
 import { IncomingMsg, OutgoingMsg } from '../server';
 import { GameClient, GameServer } from './game';
 
@@ -24,7 +24,7 @@ export class PongServer extends GameServer {
         let i = 0;
         let leftX = -0.97;
         let rightX = 0.97 - PLAYER_W;
-        const step = 0.05;
+        const step = 0.08;
         Object.keys(players).forEach(id => {
             const player = players[id];
             if (i % 2 === 0) {
@@ -41,21 +41,20 @@ export class PongServer extends GameServer {
         });
 
         setInterval(() => {
-            const randomSign = Math.random() > 0.5 ? 1 : -1;
+            const randomSignX = Math.random() > 0.5 ? 1 : -1;
+            const randomSignY = Math.random() > 0.5 ? 1 : -1;
             const ball = {
                 x: 0,
                 y: 0,
-                vx: randomSign * (0.1 + Math.random() * 0.2),
-                vy: 0.1 + Math.random() * 0.2
+                vx: randomSignX * (0.1 + Math.random() * 0.35),
+                vy: randomSignY * (0.1 + Math.random() * 0.25)
             };
             this.balls.push(ball);
         }, 500);
     }
 
-    tick(
-        incomingMessages: IncomingMsg[],
-        dt: number
-    ): OutgoingMsg[] {
+    tick(incomingMessages: IncomingMsg[], dt: number): OutgoingMsg[] {
+        // aggiorniamo la posizione dei giocatori che si sono mossi
         incomingMessages.forEach(message => {
             const id = message.clientId;
             const payload = message.payload;
@@ -66,60 +65,33 @@ export class PongServer extends GameServer {
             }
         });
 
-        // TODO far muovere le palle
-        const indexesRemove = [];
-        let i = 0;
-        this.balls.forEach((ball) => {
+        // iteriamo l'array di palle partendo dalla fine, cosi' possiamo
+        // eliminare quelle che escono dai bordi destro e sinisto
+        for (let i = this.balls.length - 1; i >= 0; i--) {
+            const ball = this.balls[i]
             ball.x += ball.vx * dt;
             ball.y += ball.vy * dt;
 
+            // collisioni palla/bordo
             if (ball.y + BALL_RADIUS > 1) {
                 ball.vy *= -1;
                 ball.y = 1 - BALL_RADIUS;
             }
-            if (ball.y - BALL_RADIUS < -1) {
+            else if (ball.y - BALL_RADIUS < -1) {
                 ball.vy *= -1;
                 ball.y = -1 + BALL_RADIUS;
             }
-
-            if (ball.x + BALL_RADIUS > 1) {
+            else if (ball.x + BALL_RADIUS > 1) {
                 this.leftScore += 1;
-                indexesRemove.push(i);
+                this.balls.splice(i, 1);
             }
-            if (ball.x - BALL_RADIUS < -1) {
+            else if (ball.x - BALL_RADIUS < -1) {
                 this.rightScore += 1;
-                indexesRemove.push(i);
+                this.balls.splice(i, 1);
             }
-            i += 1;
 
-            Object.keys(this.players).forEach(id => {
-                const player = this.players[id];
-                const playerRect = { x: player.x, y: player.y, w: PLAYER_W, h: PLAYER_H };
-                const ballRect = { x: ball.x - BALL_RADIUS, y: ball.y - BALL_RADIUS, w: BALL_RADIUS * 2, h: BALL_RADIUS * 2 };
-
-                const side = getCollisionSide(ballRect, playerRect);
-                if (side === "top") {
-                    ball.vy *= -1;
-                    ball.y = player.y - BALL_RADIUS;
-                }
-                else if (side === "bottom") {
-                    ball.vy *= -1;
-                    ball.y = player.y + PLAYER_H + BALL_RADIUS;
-                }
-                else if (side === "left") {
-                    ball.vx *= -1;
-                    ball.x = player.x - BALL_RADIUS;
-                }
-                else if (side === "right") {
-                    ball.vx *= -1;
-                    ball.x = player.x + PLAYER_W + BALL_RADIUS;
-                }
-            });
-        });
-
-        for (let i=indexesRemove.length - 1; i >= 0; i--) {
-            this.balls.splice(indexesRemove[i], 1);
-        }
+            this.handleBallToPlayerCollisions(ball);
+        };
 
         return [{
             payload: {
@@ -132,9 +104,34 @@ export class PongServer extends GameServer {
     }
 
     isFinished(): boolean {
-        // TODO aggiungere messaggio finale vinto/perso prima di uscire
         return this.leftScore  == WINNING_SCORE
             || this.rightScore == WINNING_SCORE;
+    }
+
+    handleBallToPlayerCollisions(ball) {
+        Object.keys(this.players).forEach(id => {
+            const player = this.players[id];
+            const playerRect = { x: player.x, y: player.y, w: PLAYER_W, h: PLAYER_H };
+            const ballRect = { x: ball.x - BALL_RADIUS, y: ball.y - BALL_RADIUS, w: BALL_RADIUS * 2, h: BALL_RADIUS * 2 };
+
+            const side = getCollisionSide(ballRect, playerRect);
+            if (side === "top") {
+                ball.vy *= -1;
+                ball.y = player.y - BALL_RADIUS;
+            }
+            else if (side === "bottom") {
+                ball.vy *= -1;
+                ball.y = player.y + PLAYER_H + BALL_RADIUS;
+            }
+            else if (side === "left") {
+                ball.vx *= -1;
+                ball.x = player.x - BALL_RADIUS;
+            }
+            else if (side === "right") {
+                ball.vx *= -1;
+                ball.x = player.x + PLAYER_W + BALL_RADIUS;
+            }
+        });
     }
 }
 
@@ -154,7 +151,6 @@ export class PongClient extends GameClient {
     }
 
     draw(ctx: CanvasRenderingContext2D, dt: number) {
-        console.log(this.balls);
         if (this.players === null) return;
 
         const { screenW, screenH, moveDirectionY } = this.userInput;
@@ -179,7 +175,7 @@ export class PongClient extends GameClient {
 
         Object.keys(this.players).forEach(id => {
             const player = this.players[id];
-            ctx.fillStyle = "#1d1d1d";
+            ctx.fillStyle = id === this.myId ? "#ae0f00" : "#1d1d1d";
             ctx.fillRect(player.x, player.y, PLAYER_W, PLAYER_H);
         });
 
@@ -195,10 +191,12 @@ export class PongClient extends GameClient {
         ctx.textAlign = "center";
         ctx.textBaseline = "top";
         ctx.lineWidth = 0.01;
-        ctx.font = `35px Arial`;
+        ctx.font = `24px Arial`;
         ctx.fillStyle = "#eeeeee";
-        ctx.fillText(this.leftScore+'', 20, 0);
-        ctx.fillText(this.rightScore+'', screenW - 20, 0);
+        const marginLR = 60;
+        const marginTop = 20;
+        ctx.fillText(this.leftScore+'/'+WINNING_SCORE, marginLR, marginTop);
+        ctx.fillText(this.rightScore+'/'+WINNING_SCORE, screenW - marginLR, marginTop);
     }
 
     handleMessage(message: any) {
@@ -229,6 +227,7 @@ export class PongClient extends GameClient {
     }
 
     isFinished(): boolean {
+        // TODO aggiungere messaggio finale vinto/perso prima di uscire
         return this.leftScore  == WINNING_SCORE
             || this.rightScore == WINNING_SCORE;
     }
