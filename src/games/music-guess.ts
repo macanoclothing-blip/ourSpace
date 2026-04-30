@@ -4,262 +4,265 @@ import { GameServer, GameClient } from './game';
 import { UserInput } from '../client/user-input';
 import { Button } from '../client/ui-elements';
 
-// Fallback music data (local data for backup)
-const MUSIC_DATA: Record<string, Array<{ title: string; artist: string; audioUrl: string }>> = {
-    rock: [
-        { title: "Bohemian Rhapsody", artist: "Queen", audioUrl: "https://cdns-files-c.dzcdn.net/stream/c-c8e1f1e2a8d8b8e8f1e2a8d8b8e8f1e2-9.mp3" },
-        { title: "Imagine", artist: "John Lennon", audioUrl: "https://cdns-files-c.dzcdn.net/stream/c-d1c2b3a4f5e6d7c8b9a0e1f2d3c4b5a6-9.mp3" },
-        { title: "Sweet Home Alabama", artist: "Lynyrd Skynyrd", audioUrl: "https://cdns-files-c.dzcdn.net/stream/c-e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2-9.mp3" },
-        { title: "Smoke on the Water", artist: "Deep Purple", audioUrl: "https://cdns-files-c.dzcdn.net/stream/c-f1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6-9.mp3" },
-        { title: "All Right Now", artist: "Free", audioUrl: "https://cdns-files-c.dzcdn.net/stream/c-a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6-9.mp3" }
-    ],
-    pop: [
-        { title: "Blinding Lights", artist: "The Weeknd", audioUrl: "https://cdns-files-c.dzcdn.net/stream/c-b1c2d3e4f5a6b7c8d9e0f1a2b3c4d5e6-9.mp3" },
-        { title: "Shape of You", artist: "Ed Sheeran", audioUrl: "https://cdns-files-c.dzcdn.net/stream/c-c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0-9.mp3" },
-        { title: "Levitating", artist: "Dua Lipa", audioUrl: "https://cdns-files-c.dzcdn.net/stream/c-d9e0f1a2b3c4d5e6f7a8b9c0d1e2f3a4-9.mp3" },
-        { title: "Someone You Loved", artist: "Lewis Capaldi", audioUrl: "https://cdns-files-c.dzcdn.net/stream/c-e3f4a5b6c7d8e9f0a1b2c3d4e5f6a7b8-9.mp3" },
-        { title: "Uptown Funk", artist: "Mark Ronson ft. Bruno Mars", audioUrl: "https://cdns-files-c.dzcdn.net/stream/c-f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2-9.mp3" }
-    ],
-    jazz: [
-        { title: "Take Five", artist: "Dave Brubeck", audioUrl: "https://cdns-files-c.dzcdn.net/stream/c-a5b6c7d8e9f0a1b2c3d4e5f6a7b8c9d0-9.mp3" },
-        { title: "Fly Me to the Moon", artist: "Frank Sinatra", audioUrl: "https://cdns-files-c.dzcdn.net/stream/c-b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3e4-9.mp3" },
-        { title: "All the Things You Are", artist: "Art Tatum", audioUrl: "https://cdns-files-c.dzcdn.net/stream/c-c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8-9.mp3" },
-        { title: "So What", artist: "Miles Davis", audioUrl: "https://cdns-files-c.dzcdn.net/stream/c-d7e8f9a0b1c2d3e4f5a6b7c8d9e0f1a2-9.mp3" },
-        { title: "Autumn Leaves", artist: "Bill Evans Trio", audioUrl: "https://cdns-files-c.dzcdn.net/stream/c-e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6-9.mp3" }
-    ],
-    hip_hop: [
-        { title: "Lose Yourself", artist: "Eminem", audioUrl: "https://cdns-files-c.dzcdn.net/stream/c-f5a6b7c8d9e0f1a2b3c4d5e6f7a8b9c0-9.mp3" },
-        { title: "In Da Club", artist: "50 Cent", audioUrl: "https://cdns-files-c.dzcdn.net/stream/c-a9b0c1d2e3f4a5b6c7d8e9f0a1b2c3d4-9.mp3" },
-        { title: "Hotline Bling", artist: "Drake", audioUrl: "https://cdns-files-c.dzcdn.net/stream/c-b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8-9.mp3" },
-        { title: "God's Plan", artist: "Drake", audioUrl: "https://cdns-files-c.dzcdn.net/stream/c-c7d8e9f0a1b2c3d4e5f6a7b8c9d0e1f2-9.mp3" },
-        { title: "HUMBLE.", artist: "Kendrick Lamar", audioUrl: "https://cdns-files-c.dzcdn.net/stream/c-d1e2f3a4b5c6d7e8f9a0b1c2d3e4f5a6-9.mp3" }
-    ],
-    classical: [
-        { title: "Moonlight Sonata", artist: "Ludwig van Beethoven", audioUrl: "https://cdns-files-c.dzcdn.net/stream/c-e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0-9.mp3" },
-        { title: "Canon in D", artist: "Johann Pachelbel", audioUrl: "https://cdns-files-c.dzcdn.net/stream/c-f9a0b1c2d3e4f5a6b7c8d9e0f1a2b3c4-9.mp3" },
-        { title: "The Four Seasons - Spring", artist: "Antonio Vivaldi", audioUrl: "https://cdns-files-c.dzcdn.net/stream/c-a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8-9.mp3" },
-        { title: "Clair de Lune", artist: "Claude Debussy", audioUrl: "https://cdns-files-c.dzcdn.net/stream/c-b7c8d9e0f1a2b3c4d5e6f7a8b9c0d1e2-9.mp3" },
-        { title: "Eine kleine Nachtmusik", artist: "Wolfgang Amadeus Mozart", audioUrl: "https://cdns-files-c.dzcdn.net/stream/c-c1d2e3f4a5b6c7d8e9f0a1b2c3d4e5f6-9.mp3" }
-    ]
-};
+// ─── Types ───────────────────────────────────────────────────────────────────
 
-// Game messages
+type SongInfo = { title: string; artist: string; audioUrl: string };
+
 type MusicGameServerMsg = {
     kind: "music_game_update";
     gameState: GameState;
-    lastGuess?: {
-        playerName: string;
-        guess: string;
-        correct: boolean;
-    };
+    lastGuess?: { playerName: string; guess: string; correct: boolean };
 };
 
-type MusicGameClientMsg = {
-    kind: "music_genre_select";
-    genre: string;
-} | {
-    kind: "music_guess_submit";
+type MusicGameClientMsg =
+    | { kind: "music_song_ready"; genre: string; song: SongInfo }
+    | { kind: "music_guess_submit"; guess: string };
+
+type GuessRecord = {
+    playerId: string;
+    playerName: string;
     guess: string;
+    timestamp: number;
 };
 
 type GameState = {
     phase: "genre_select" | "playing" | "game_over";
     selectedGenre?: string;
-    currentSong?: { title: string; artist: string; audioUrl: string };
-    guesses: Array<{
-        playerId: string;
-        playerName: string;
-        guess: string;
-        timestamp: number;
-    }>;
+    selectedArtist?: string;   // set when mode is "artist"
+    currentSong?: SongInfo;
+    guesses: GuessRecord[];
     gameOver: boolean;
     winnerId?: string;
     correctPlayers: string[];
+    hintsRevealed: number;
 };
 
-// Server-side player state
-type MusicPlayer = Player & {
-    score: number;
+type MusicPlayer = Player & { score: number };
+
+// ─── Genre definitions ───────────────────────────────────────────────────────
+
+const GENRE_TERMS: Record<string, string> = {
+    rock:           'rock classic',
+    pop:            'pop hits',
+    jazz:           'jazz standard',
+    hip_hop:        'hip hop rap',
+    classical:      'classical orchestra',
+    electronic:     'electronic dance EDM',
+    metal:          'heavy metal',
+    r_and_b:        'r&b soul',
+    country:        'country music',
+    reggae:         'reggae',
+    blues:          'blues guitar',
+    latin:          'latin salsa',
+    punk:           'punk rock',
+    disco:          'disco funk',
+    indie:          'indie alternative',
+    soul:           'soul motown',
+    folk:           'folk acoustic',
+    funk:           'funk groove',
+    gospel:         'gospel',
+    bossa_nova:     'bossa nova',
+    kpop:           'kpop',
+    italian:        'pop italiano',
+    mega_hits:      'pop hits 2025 2026',
 };
 
-// Function to fetch songs from Deezer API
-async function fetchSongsFromDeezer(genre: string): Promise<Array<{ title: string; artist: string; audioUrl: string }>> {
-    return new Promise((resolve) => {
-        try {
-            const https = require('https');
-            
-            const genreQueries: Record<string, string> = {
-                rock: 'rock',
-                pop: 'pop',
-                jazz: 'jazz',
-                hip_hop: 'hip hop',
-                classical: 'classical'
-            };
+const GENRE_LABELS: Record<string, string> = {
+    rock:       '🎸 Rock',
+    pop:        '🌟 Pop',
+    jazz:       '🎷 Jazz',
+    hip_hop:    '🎤 Hip Hop',
+    classical:  '🎻 Classical',
+    electronic: '🎧 Electronic',
+    metal:      '🤘 Metal',
+    r_and_b:    '🎶 R&B',
+    country:    '🤠 Country',
+    reggae:     '🌿 Reggae',
+    blues:      '🎵 Blues',
+    latin:      '💃 Latin',
+    punk:       '⚡ Punk',
+    disco:      '🪩 Disco',
+    indie:      '🌀 Indie',
+    soul:       '❤️ Soul',
+    folk:       '🪕 Folk',
+    funk:       '🕺 Funk',
+    gospel:     '✝️ Gospel',
+    bossa_nova: '🌴 Bossa Nova',
+    kpop:       '🇰🇷 K-Pop',
+    italian:    '🇮🇹 Italiane',
+    mega_hits:  '🌍 Famosissime',
+};
 
-            const query = genreQueries[genre] || 'music';
-            const url = `https://api.deezer.com/search?q=${encodeURIComponent(query)}&limit=20`;
+// ─── Hint generation ─────────────────────────────────────────────────────────
 
-            https.get(url, (res: any) => {
-                let data = '';
-                res.on('data', (chunk: string) => {
-                    data += chunk;
-                });
-                res.on('end', () => {
-                    try {
-                        const jsonData = JSON.parse(data);
-                        const songs = jsonData.data
-                            ?.filter((track: any) => track.preview && track.preview.length > 0)
-                            .slice(0, 5)
-                            .map((track: any) => ({
-                                title: track.title,
-                                artist: track.artist.name,
-                                audioUrl: track.preview
-                            })) || [];
-                        
-                        if (songs.length > 0) {
-                            resolve(songs);
-                        } else {
-                            // Fallback to local data
-                            resolve(MUSIC_DATA[genre] || []);
-                        }
-                    } catch (e) {
-                        // Fallback to local data
-                        resolve(MUSIC_DATA[genre] || []);
-                    }
-                });
-            }).on('error', () => {
-                // Fallback to local data
-                resolve(MUSIC_DATA[genre] || []);
-            });
-        } catch (e) {
-            // If running on client or https not available, use fallback
-            resolve(MUSIC_DATA[genre] || []);
-        }
-    });
+function generateHints(song: SongInfo, artistKnown: boolean): string[] {
+    const title = song.title;
+    const artist = song.artist;
+    const words = title.split(/\s+/).filter(w => w.length > 0);
+
+    const skeleton = words.map(w => w[0].toUpperCase() + '_'.repeat(Math.max(0, w.length - 1))).join(' ');
+    const charCount = title.replace(/\s/g, '').length;
+    const hint2 = `Il titolo ha ${words.length} parola${words.length > 1 ? 'e' : ''} e ${charCount} lettere totali`;
+    const artistWords = artist.split(/\s+/).length;
+    const hint3 = artistKnown
+        ? `L'anno di uscita: cerca negli anni '${Math.floor(Math.random() * 3 + 20)}0`
+        : `L'artista inizia con "${artist[0].toUpperCase()}" e il nome ha ${artistWords} parola${artistWords > 1 ? 'e' : ''}`;
+    const hint4 = words.length > 1
+        ? `Il titolo inizia con la parola "${words[0]}"`
+        : `Il titolo inizia con "${title.slice(0, 3)}..."`;
+    const hint5 = artistKnown ? `Artista: ${artist} — prova a ricordare i suoi successi!` : `Artista: ${artist}`;
+
+    return [skeleton, hint2, hint3, hint4, hint5];
 }
 
-//////////////////////
-////// SERVER ////////
-//////////////////////
+// ─── iTunes fetch ─────────────────────────────────────────────────────────────
+
+async function fetchSongFromItunes(genre: string): Promise<SongInfo | null> {
+    const term = encodeURIComponent(GENRE_TERMS[genre] || genre);
+    const url = `https://itunes.apple.com/search?term=${term}&media=music&limit=50&entity=song`;
+    try {
+        const res = await fetch(url);
+        const data = await res.json();
+        const tracks = (data.results || []).filter(
+            (t: any) => t.previewUrl && t.trackName && t.artistName
+        );
+        if (tracks.length === 0) return null;
+        const shuffled = tracks.sort(() => Math.random() - 0.5);
+        const pick = shuffled[0];
+        return { title: pick.trackName, artist: pick.artistName, audioUrl: pick.previewUrl };
+    } catch (err) {
+        console.error("iTunes fetch failed:", err);
+        return null;
+    }
+}
+
+async function fetchSongByArtist(artistName: string): Promise<SongInfo | null> {
+    const term = encodeURIComponent(artistName);
+    const url = `https://itunes.apple.com/search?term=${term}&media=music&limit=50&entity=song&attribute=artistTerm`;
+    try {
+        const res = await fetch(url);
+        const data = await res.json();
+        const tracks = (data.results || []).filter(
+            (t: any) =>
+                t.previewUrl &&
+                t.trackName &&
+                t.artistName &&
+                t.artistName.toLowerCase().includes(artistName.toLowerCase())
+        );
+        if (tracks.length === 0) return null;
+        const shuffled = tracks.sort(() => Math.random() - 0.5);
+        const pick = shuffled[0];
+        return { title: pick.trackName, artist: pick.artistName, audioUrl: pick.previewUrl };
+    } catch (err) {
+        console.error("iTunes artist fetch failed:", err);
+        return null;
+    }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+//  SERVER
+// ─────────────────────────────────────────────────────────────────────────────
 
 export class MusicGuessGameServer extends GameServer {
     private gameState: GameState;
     private gamePlayers: Record<string, MusicPlayer>;
     private initMessage: MusicGameServerMsg;
-    private playersReady: Set<string> = new Set();
-    private fetchedSongs: Array<{ title: string; artist: string; audioUrl: string }> = [];
+
+    private static HINT_EVERY = 2;
 
     constructor() {
         super();
-
         this.gameState = {
             phase: "genre_select",
             guesses: [],
             gameOver: false,
-            correctPlayers: []
+            correctPlayers: [],
+            hintsRevealed: 0
         };
     }
 
     init(players: Record<string, Player>) {
         this.gamePlayers = {};
         Object.entries(players).forEach(([id, player]) => {
-            this.gamePlayers[id] = {
-                ...player,
-                score: 0
-            };
+            this.gamePlayers[id] = { ...player, score: 0 };
         });
-
-        this.initMessage = {
-            kind: "music_game_update",
-            gameState: this.gameState
-        }
+        this.initMessage = { kind: "music_game_update", gameState: this.gameState };
     }
 
     tick(incomingMessages: IncomingMsg[], dt: number): OutgoingMsg[] {
-        const outgoingMessages: OutgoingMsg[] = [];
+        const out: OutgoingMsg[] = [];
 
         if (this.initMessage) {
-            outgoingMessages.push({
-                payload: this.initMessage
-            });
+            out.push({ payload: this.initMessage });
             this.initMessage = null;
         }
 
-        incomingMessages.forEach(message => {
-            const clientId = message.clientId;
-            const payload = message.payload;
-            
-            if (payload.kind === "music_genre_select" && this.gameState.phase === "genre_select") {
-                const genre = payload.genre;
-                // Use fallback data immediately
-                const genreData = MUSIC_DATA[genre];
-                if (genreData && genreData.length > 0) {
-                    this.gameState.selectedGenre = genre;
-                    this.gameState.phase = "playing";
-                    
-                    // Select random song
-                    const randomSong = genreData[Math.floor(Math.random() * genreData.length)];
-                    this.gameState.currentSong = randomSong;
-                    this.gameState.correctPlayers = [];
-                    this.gameState.guesses = [];
-                    this.gameState.gameOver = false;
-                    this.gameState.winnerId = undefined;
-                    
-                    // Send update to all players
-                    outgoingMessages.push({
-                        payload: {
-                            kind: "music_game_update",
-                            gameState: this.gameState
-                        }
-                    });
-                }
-            } else if (payload.kind === "music_guess_submit" && this.gameState.phase === "playing" && !this.gameState.correctPlayers.includes(clientId)) {
-                const guess = payload.guess.toLowerCase().trim();
-                const player = this.gamePlayers[clientId];
-                
-                if (player && this.gameState.currentSong) {
-                    const correct = guess === this.gameState.currentSong.title.toLowerCase();
-                    
-                    // Record the guess
-                    this.gameState.guesses.push({
-                        playerId: clientId,
-                        playerName: player.name,
-                        guess: payload.guess,
-                        timestamp: Date.now()
-                    });
-                    
-                    if (correct) {
-                        this.gameState.correctPlayers.push(clientId);
-                        player.score += 1;
-                        
-                        if (this.gameState.correctPlayers.length === 1) {
-                            this.gameState.winnerId = clientId;
-                        }
-                        
-                        // If anyone got it right, end game
-                        if (this.gameState.correctPlayers.length >= 1) {
-                            this.gameState.gameOver = true;
-                            this.gameState.phase = "game_over";
-                        }
-                    }
-                    
-                    // Send update to all players
-                    outgoingMessages.push({
-                        payload: {
-                            kind: "music_game_update",
-                            gameState: this.gameState,
-                            lastGuess: {
-                                playerName: player.name,
-                                guess: payload.guess,
-                                correct: correct
-                            }
-                        }
-                    });
-                }
-            }
-        });
+        for (const message of incomingMessages) {
+            const { clientId, payload } = message;
 
-        return outgoingMessages;
+            if (payload.kind === "music_song_ready" && this.gameState.phase === "genre_select") {
+                this.gameState = {
+                    phase: "playing",
+                    selectedGenre: payload.genre,
+                    selectedArtist: (payload as any).artist,
+                    currentSong: payload.song,
+                    guesses: [],
+                    gameOver: false,
+                    winnerId: undefined,
+                    correctPlayers: [],
+                    hintsRevealed: 0
+                };
+                out.push({ payload: { kind: "music_game_update", gameState: this.gameState } });
+            }
+
+            else if (
+                payload.kind === "music_guess_submit" &&
+                this.gameState.phase === "playing" &&
+                !this.gameState.correctPlayers.includes(clientId)
+            ) {
+                const player = this.gamePlayers[clientId];
+                if (!player || !this.gameState.currentSong) continue;
+
+                const guess = payload.guess.toLowerCase().trim();
+                const songTitle = this.gameState.currentSong.title.toLowerCase();
+                const correct =
+                    guess === songTitle ||
+                    songTitle.includes(guess) ||
+                    guess.includes(songTitle);
+
+                this.gameState.guesses.push({
+                    playerId: clientId,
+                    playerName: player.name,
+                    guess: payload.guess,
+                    timestamp: Date.now()
+                });
+
+                const newHintsCount = Math.floor(
+                    this.gameState.guesses.length / MusicGuessGameServer.HINT_EVERY
+                );
+                this.gameState.hintsRevealed = Math.min(newHintsCount, 5);
+
+                if (correct) {
+                    this.gameState.correctPlayers.push(clientId);
+                    player.score += 1;
+                    if (this.gameState.correctPlayers.length === 1) {
+                        this.gameState.winnerId = clientId;
+                    }
+                    this.gameState.gameOver = true;
+                    this.gameState.phase = "game_over";
+                }
+
+                out.push({
+                    payload: {
+                        kind: "music_game_update",
+                        gameState: this.gameState,
+                        lastGuess: { playerName: player.name, guess: payload.guess, correct }
+                    }
+                });
+            }
+        }
+
+        return out;
     }
 
     isFinished(): boolean {
@@ -267,216 +270,513 @@ export class MusicGuessGameServer extends GameServer {
     }
 }
 
-//////////////////////
-////// CLIENT ////////
-//////////////////////
+// ─────────────────────────────────────────────────────────────────────────────
+//  CLIENT
+// ─────────────────────────────────────────────────────────────────────────────
 
 export class MusicGuessGameClient extends GameClient {
     private gameState: GameState | null = null;
-    private lastGuessResult: any = null;
+    private lastGuessResult: { playerName: string; guess: string; correct: boolean } | null = null;
     private currentGuess: string = "";
     private messageQueue: MusicGameClientMsg[] = [];
     private userExited: boolean = false;
-    private exitButton: Button;
-    private players: Record<string, Player>;
+    private isLoadingSong: boolean = false;
+    private loadError: string | null = null;
+    private players: Record<string, Player> = {};
+    private currentHints: string[] = [];
+    private artistKnownMode: boolean = false;
 
+    // Artist input overlay state
+    private showingArtistInput: boolean = false;
+    private artistInputEl: HTMLInputElement | null = null;
+    private artistConfirmBtn: HTMLButtonElement | null = null;
+    private artistCancelBtn: HTMLButtonElement | null = null;
+    private artistOverlayDiv: HTMLDivElement | null = null;
+
+    // Buttons
     private genreButtons: Map<string, Button> = new Map();
+    private artistModeButton: Button;
+    private replayButton: Button;
+    private exitButton: Button;
+
+    // Audio
     private audioElement: HTMLAudioElement;
+    private genreList = Object.keys(GENRE_TERMS);
 
     constructor(userInput: UserInput, myId: string) {
         super(userInput, myId);
-        
-        // Initialize audio element
+
         this.audioElement = new Audio();
         this.audioElement.crossOrigin = "anonymous";
-        
-        // Setup keyboard input for guessing
+        this.audioElement.volume = 0.8;
+
+        // Keyboard input for guessing
         document.addEventListener('keydown', (e) => {
-            if (this.gameState?.phase !== "playing") return;
-            
-            if (e.key === 'Enter' && this.currentGuess.trim() !== '') {
-                this.messageQueue.push({
-                    kind: "music_guess_submit",
-                    guess: this.currentGuess
-                });
-                this.currentGuess = "";
+            if (this.gameState?.phase !== "playing" || this.showingArtistInput) return;
+            if (e.key === 'Enter') {
+                if (this.currentGuess.trim() !== '') {
+                    this.messageQueue.push({ kind: "music_guess_submit", guess: this.currentGuess });
+                    this.currentGuess = "";
+                }
             } else if (e.key === 'Backspace') {
                 this.currentGuess = this.currentGuess.slice(0, -1);
-            } else if (e.key.length === 1) {
+            } else if (e.key.length === 1 && !e.ctrlKey && !e.metaKey) {
                 this.currentGuess += e.key;
             }
         });
 
-        this.exitButton = new Button("exit", this.userInput, () => {
-            this.userExited = true;
-        });
-
-        // Create genre buttons
-        const genres = ['rock', 'pop', 'jazz', 'hip_hop', 'classical'];
-        genres.forEach(genre => {
-            const btn = new Button(genre, userInput, () => {
-                this.messageQueue.push({
-                    kind: "music_genre_select",
-                    genre: genre
-                });
+        // Genre buttons
+        this.genreList.forEach(genre => {
+            const btn = new Button(GENRE_LABELS[genre] || genre, userInput, () => {
+                if (this.isLoadingSong || this.showingArtistInput) return;
+                this.handleGenreSelect(genre);
             });
             this.genreButtons.set(genre, btn);
         });
+
+        // "Scegli Artista" button — special highlighted button
+        this.artistModeButton = new Button("🎤 Scegli Artista", userInput, () => {
+            if (this.isLoadingSong) return;
+            this.openArtistOverlay();
+        });
+
+        this.replayButton = new Button("🔁 Riascolta", userInput, () => {
+            if (this.gameState?.currentSong) {
+                this.playAudioPreview(this.gameState.currentSong.audioUrl);
+            }
+        });
+
+        this.exitButton = new Button("🚪 Esci", userInput, () => {
+            this.userExited = true;
+        });
+    }
+
+    // ── Artist overlay (HTML element over the canvas) ───────────────────────
+
+    private openArtistOverlay() {
+        if (this.showingArtistInput) return;
+        this.showingArtistInput = true;
+
+        // Container
+        const overlay = document.createElement('div');
+        overlay.style.cssText = `
+            position: fixed; inset: 0;
+            background: rgba(0,0,0,0.75);
+            display: flex; align-items: center; justify-content: center;
+            z-index: 9999;
+            font-family: Georgia, serif;
+        `;
+
+        const box = document.createElement('div');
+        box.style.cssText = `
+            background: #141428;
+            border: 2px solid #e8c547;
+            border-radius: 12px;
+            padding: 32px 40px;
+            display: flex; flex-direction: column; gap: 16px;
+            min-width: 340px; align-items: center;
+        `;
+
+        const label = document.createElement('div');
+        label.textContent = '🎤 Inserisci il nome dell\'artista';
+        label.style.cssText = 'color: #e8c547; font-size: 20px; font-weight: bold; text-align: center;';
+
+        const input = document.createElement('input');
+        input.type = 'text';
+        input.placeholder = 'es. Taylor Swift, Vasco Rossi…';
+        input.style.cssText = `
+            width: 100%; padding: 10px 14px; font-size: 18px;
+            background: #0d0d1a; color: #fff;
+            border: 1.5px solid #555; border-radius: 6px;
+            outline: none; font-family: Georgia, serif;
+            box-sizing: border-box;
+        `;
+        input.addEventListener('focus', () => { input.style.borderColor = '#e8c547'; });
+        input.addEventListener('blur', () => { input.style.borderColor = '#555'; });
+
+        const errorMsg = document.createElement('div');
+        errorMsg.style.cssText = 'color: #f87171; font-size: 14px; min-height: 18px; text-align: center;';
+
+        const btnRow = document.createElement('div');
+        btnRow.style.cssText = 'display: flex; gap: 14px; justify-content: center; width: 100%;';
+
+        const confirmBtn = document.createElement('button');
+        confirmBtn.textContent = '✅ Cerca';
+        confirmBtn.style.cssText = `
+            padding: 10px 26px; font-size: 16px; font-family: Georgia, serif;
+            background: #e8c547; color: #0d0d1a; border: none;
+            border-radius: 6px; cursor: pointer; font-weight: bold;
+        `;
+
+        const cancelBtn = document.createElement('button');
+        cancelBtn.textContent = '✖ Annulla';
+        cancelBtn.style.cssText = `
+            padding: 10px 22px; font-size: 16px; font-family: Georgia, serif;
+            background: #333; color: #aaa; border: 1px solid #555;
+            border-radius: 6px; cursor: pointer;
+        `;
+
+        const loadingMsg = document.createElement('div');
+        loadingMsg.style.cssText = 'color: #e8c547; font-size: 15px; text-align: center; display: none;';
+        loadingMsg.textContent = '⏳ Cerco una canzone…';
+
+        btnRow.appendChild(confirmBtn);
+        btnRow.appendChild(cancelBtn);
+        box.appendChild(label);
+        box.appendChild(input);
+        box.appendChild(errorMsg);
+        box.appendChild(btnRow);
+        box.appendChild(loadingMsg);
+        overlay.appendChild(box);
+        document.body.appendChild(overlay);
+
+        this.artistOverlayDiv = overlay;
+        this.artistInputEl = input;
+        this.artistConfirmBtn = confirmBtn;
+        this.artistCancelBtn = cancelBtn;
+
+        setTimeout(() => input.focus(), 50);
+
+        // Confirm handler
+        const confirm = async () => {
+            const name = input.value.trim();
+            if (!name) {
+                errorMsg.textContent = 'Inserisci un nome!';
+                return;
+            }
+            errorMsg.textContent = '';
+            confirmBtn.disabled = true;
+            cancelBtn.disabled = true;
+            loadingMsg.style.display = 'block';
+
+            const song = await fetchSongByArtist(name);
+            loadingMsg.style.display = 'none';
+
+            if (!song) {
+                errorMsg.textContent = `Nessuna canzone trovata per "${name}". Riprova.`;
+                confirmBtn.disabled = false;
+                cancelBtn.disabled = false;
+                return;
+            }
+
+            this.closeArtistOverlay();
+            this.isLoadingSong = true;
+            this.artistKnownMode = true;
+            this.messageQueue.push({
+                kind: "music_song_ready",
+                genre: `🎤 ${name}`,
+                song,
+                ...(({ artist: name }) as any)  // pass artist name through for server state
+            } as any);
+        };
+
+        confirmBtn.addEventListener('click', confirm);
+        input.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') confirm();
+            if (e.key === 'Escape') this.closeArtistOverlay();
+        });
+        cancelBtn.addEventListener('click', () => this.closeArtistOverlay());
+        overlay.addEventListener('click', (e) => {
+            if (e.target === overlay) this.closeArtistOverlay();
+        });
+    }
+
+    private closeArtistOverlay() {
+        if (this.artistOverlayDiv) {
+            document.body.removeChild(this.artistOverlayDiv);
+            this.artistOverlayDiv = null;
+        }
+        this.showingArtistInput = false;
+    }
+
+    // ── Genre fetch ─────────────────────────────────────────────────────────
+
+    private async handleGenreSelect(genre: string) {
+        this.isLoadingSong = true;
+        this.loadError = null;
+        this.artistKnownMode = false;
+        try {
+            const song = await fetchSongFromItunes(genre);
+            if (song) {
+                this.messageQueue.push({ kind: "music_song_ready", genre, song });
+            } else {
+                this.loadError = "Nessuna canzone trovata. Riprova.";
+                this.isLoadingSong = false;
+            }
+        } catch {
+            this.loadError = "Errore di rete. Riprova.";
+            this.isLoadingSong = false;
+        }
     }
 
     init(players: Record<string, Player>) {
         this.players = players;
+        return Promise.resolve();
     }
 
     draw(ctx: CanvasRenderingContext2D, dt: number) {
         const { screenW, screenH } = this.userInput;
-        
-        // Clear screen
-        ctx.fillStyle = "#1a1a2e";
+
+        ctx.fillStyle = "#0d0d1a";
         ctx.fillRect(0, 0, screenW, screenH);
-        
-        // Draw game title
-        ctx.fillStyle = "#ffffff";
-        ctx.font = "bold 48px Arial";
+
+        ctx.fillStyle = "#e8c547";
+        ctx.font = "bold 40px Georgia, serif";
         ctx.textAlign = "center";
-        ctx.fillText("Guess the Song", screenW / 2, 80);
-        
+        ctx.fillText("🎵 Guess the Song", screenW / 2, 62);
+
         if (!this.gameState) {
-            ctx.font = "24px Arial";
-            ctx.fillText("Waiting for game to start...", screenW / 2, screenH / 2);
+            ctx.fillStyle = "#888";
+            ctx.font = "22px Georgia, serif";
+            ctx.fillText("Connessione in corso...", screenW / 2, screenH / 2);
             return;
         }
 
         if (this.gameState.phase === "genre_select") {
-            // Genre selection phase
-            ctx.fillStyle = "#ffffff";
-            ctx.font = "28px Arial";
-            ctx.fillText("Select a Music Genre:", screenW / 2, 150);
-
-            const genres = Array.from(this.genreButtons.keys());
-            const buttonHeight = 60;
-            const buttonWidth = 150;
-            const spacing = 20;
-            const totalHeight = genres.length * (buttonHeight + spacing);
-            const startY = (screenH - totalHeight) / 2;
-
-            genres.forEach((genre, index) => {
-                const btn = this.genreButtons.get(genre)!;
-                const y = startY + index * (buttonHeight + spacing);
-                btn.draw(ctx, screenW / 2 - buttonWidth / 2, y, buttonWidth, buttonHeight);
-            });
+            this.drawGenreSelect(ctx, screenW, screenH);
         } else if (this.gameState.phase === "playing") {
-            // Playing phase
-            ctx.fillStyle = "#ffffff";
-            ctx.font = "24px Arial";
-            ctx.textAlign = "center";
-            ctx.fillText(`Genre: ${this.gameState.selectedGenre}`, screenW / 2, 150);
-            ctx.fillText("Listen to the song preview and guess the title", screenW / 2, 200);
-
-            // Draw current guess input
-            ctx.fillStyle = "#333333";
-            ctx.fillRect(screenW / 2 - 200, screenH / 2 - 50, 400, 60);
-            ctx.fillStyle = "#ffffff";
-            ctx.font = "32px Arial";
-            ctx.fillText(this.currentGuess || "...", screenW / 2, screenH / 2 - 20);
-
-            // Draw last guess result
-            if (this.lastGuessResult) {
-                ctx.font = "24px Arial";
-                const result = this.lastGuessResult;
-                let resultText = "";
-                let resultColor = "#ffffff";
-                
-                if (result.correct) {
-                    resultText = `${result.playerName} guessed correctly! "${result.guess}" 🎉`;
-                    resultColor = "#4CAF50";
-                } else {
-                    resultText = `${result.playerName} guessed "${result.guess}" ❌`;
-                    resultColor = "#FF5722";
-                }
-                
-                ctx.fillStyle = resultColor;
-                ctx.fillText(resultText, screenW / 2, screenH / 2 + 80);
-            }
-
-            // Draw guess history
-            if (this.gameState.guesses.length > 0) {
-                ctx.fillStyle = "#666666";
-                ctx.font = "18px Arial";
-                ctx.textAlign = "left";
-                ctx.fillText("Guesses:", 50, screenH - 150);
-                
-                const recentGuesses = this.gameState.guesses.slice(-5);
-                recentGuesses.forEach((guess, index) => {
-                    const yPos = screenH - 100 + (index * 25);
-                    ctx.fillText(`${guess.playerName}: "${guess.guess}"`, 50, yPos);
-                });
-                ctx.textAlign = "center";
-            }
+            this.drawPlaying(ctx, screenW, screenH);
         } else if (this.gameState.phase === "game_over") {
-            // Game over phase
-            ctx.fillStyle = "#4CAF50";
-            ctx.font = "bold 36px Arial";
-            if (this.gameState.winnerId) {
-                const winner = this.players[this.gameState.winnerId];
-                ctx.fillText(`🎵 ${winner?.name || "Someone"} guessed correctly!`, screenW / 2, screenH / 2 - 100);
-                
-                if (this.gameState.currentSong) {
-                    ctx.fillStyle = "#ffffff";
-                    ctx.font = "28px Arial";
-                    ctx.fillText(`The song was: "${this.gameState.currentSong.title}"`, screenW / 2, screenH / 2 - 20);
-                    ctx.fillText(`by ${this.gameState.currentSong.artist}`, screenW / 2, screenH / 2 + 40);
-                }
-            }
-            this.exitButton.draw(ctx, screenW / 2 - 60, screenH - 80, 120, 50);
+            this.drawGameOver(ctx, screenW, screenH);
         }
 
-        // Draw player scores
-        ctx.fillStyle = "#888888";
-        ctx.font = "20px Arial";
+        this.drawScoreboard(ctx, screenW);
+    }
+
+    // ── Genre selection grid ────────────────────────────────────────────────
+
+    private drawGenreSelect(ctx: CanvasRenderingContext2D, W: number, H: number) {
+        if (this.isLoadingSong) {
+            ctx.fillStyle = "#e8c547";
+            ctx.font = "24px Georgia, serif";
+            ctx.textAlign = "center";
+            ctx.fillText("⏳ Caricamento canzone...", W / 2, H / 2);
+            return;
+        }
+
+        ctx.fillStyle = "#cccccc";
+        ctx.font = "20px Georgia, serif";
+        ctx.textAlign = "center";
+        ctx.fillText("Scegli un genere — oppure cerca per artista:", W / 2, 98);
+
+        if (this.loadError) {
+            ctx.fillStyle = "#ff6b6b";
+            ctx.font = "16px Georgia, serif";
+            ctx.fillText(this.loadError, W / 2, 120);
+        }
+
+        // "Scegli Artista" button — full width, highlighted, above the grid
+        const artBtnW = 220;
+        const artBtnH = 46;
+        this.artistModeButton.draw(ctx, W / 2 - artBtnW / 2, 130, artBtnW, artBtnH);
+
+        // Draw a subtle separator line
+        ctx.strokeStyle = "#2a2a44";
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(W / 2 - 200, 188);
+        ctx.lineTo(W / 2 + 200, 188);
+        ctx.stroke();
+
+        ctx.fillStyle = "#555";
+        ctx.font = "13px Georgia, serif";
+        ctx.fillText("— oppure scegli genere —", W / 2, 202);
+
+        // 4-column genre grid
+        const cols = 4;
+        const btnW = 162;
+        const btnH = 46;
+        const gapX = 16;
+        const gapY = 10;
+        const genres = this.genreList;
+        const totalW = cols * btnW + (cols - 1) * gapX;
+        const startX = W / 2 - totalW / 2;
+        const startY = 214;
+
+        genres.forEach((genre, i) => {
+            const col = i % cols;
+            const row = Math.floor(i / cols);
+            const x = startX + col * (btnW + gapX);
+            const y = startY + row * (btnH + gapY);
+            this.genreButtons.get(genre)!.draw(ctx, x, y, btnW, btnH);
+        });
+    }
+
+    // ── Playing phase ───────────────────────────────────────────────────────
+
+    private drawPlaying(ctx: CanvasRenderingContext2D, W: number, H: number) {
+        const gs = this.gameState!;
+
+        // Label: genre or artist
+        ctx.fillStyle = "#e8c547";
+        ctx.font = "19px Georgia, serif";
+        ctx.textAlign = "center";
+        const modeLabel = gs.selectedArtist
+            ? `🎤 Artista: ${gs.selectedArtist}`
+            : (GENRE_LABELS[gs.selectedGenre || ''] || gs.selectedGenre || '');
+        ctx.fillText(modeLabel, W / 2, 100);
+
+        ctx.fillStyle = "#777";
+        ctx.font = "15px Georgia, serif";
+        ctx.fillText("Ascolta il preview, scrivi il titolo e premi Invio", W / 2, 122);
+
+        this.replayButton.draw(ctx, W / 2 - 75, 136, 150, 38);
+
+        // Input box
+        const boxW = 460;
+        const boxH = 52;
+        const boxX = W / 2 - boxW / 2;
+        const boxY = 192;
+
+        ctx.strokeStyle = "#e8c547";
+        ctx.lineWidth = 2;
+        ctx.strokeRect(boxX, boxY, boxW, boxH);
+        ctx.fillStyle = "#141428";
+        ctx.fillRect(boxX + 1, boxY + 1, boxW - 2, boxH - 2);
+
+        ctx.fillStyle = this.currentGuess ? "#ffffff" : "#555";
+        ctx.font = "23px Georgia, serif";
+        ctx.textAlign = "center";
+        ctx.fillText(this.currentGuess || "Scrivi qui...", W / 2, boxY + 34);
+
+        if (Math.floor(Date.now() / 500) % 2 === 0 && this.currentGuess) {
+            const tw = ctx.measureText(this.currentGuess).width;
+            ctx.fillStyle = "#e8c547";
+            ctx.fillRect(W / 2 + tw / 2 + 4, boxY + 8, 2, 34);
+        }
+
+        if (this.lastGuessResult) {
+            const r = this.lastGuessResult;
+            ctx.font = "19px Georgia, serif";
+            ctx.fillStyle = r.correct ? "#4ade80" : "#f87171";
+            ctx.fillText(
+                `${r.correct ? "✅" : "❌"} ${r.playerName}: "${r.guess}"`,
+                W / 2, 268
+            );
+        }
+
+        // Hints panel
+        const hintsRevealed = gs.hintsRevealed;
+        const hintAreaY = 292;
+
+        if (gs.guesses.length === 0) {
+            ctx.fillStyle = "#3a3a5a";
+            ctx.font = "14px Georgia, serif";
+            ctx.textAlign = "center";
+            ctx.fillText("💡 Suggerimenti si sbloccano ogni 2 tentativi", W / 2, hintAreaY + 14);
+        } else if (hintsRevealed === 0) {
+            ctx.fillStyle = "#3a3a5a";
+            ctx.font = "14px Georgia, serif";
+            ctx.textAlign = "center";
+            ctx.fillText(`💡 Prossimo suggerimento tra ${2 - (gs.guesses.length % 2)} tentativo/i`, W / 2, hintAreaY + 14);
+        } else {
+            ctx.fillStyle = "#6b5e1e";
+            ctx.font = "bold 15px Georgia, serif";
+            ctx.textAlign = "center";
+            ctx.fillText("💡 Suggerimenti:", W / 2, hintAreaY);
+            for (let i = 0; i < hintsRevealed && i < this.currentHints.length; i++) {
+                const isLatest = i === hintsRevealed - 1;
+                ctx.fillStyle = isLatest ? "#e8c547" : "#9a8535";
+                ctx.font = `${isLatest ? "bold " : ""}14px Georgia, serif`;
+                ctx.fillText(`${i + 1}. ${this.currentHints[i]}`, W / 2, hintAreaY + 22 + i * 22);
+            }
+        }
+
+        // Guess history
+        if (gs.guesses.length > 0) {
+            const recent = gs.guesses.slice(-6);
+            ctx.fillStyle = "#3a3a5a";
+            ctx.font = "14px Georgia, serif";
+            ctx.textAlign = "left";
+            ctx.fillText("Tentativi:", 28, H - 148);
+            recent.forEach((g, i) => {
+                ctx.fillStyle = "#666";
+                ctx.fillText(`${g.playerName}: "${g.guess}"`, 28, H - 126 + i * 20);
+            });
+            ctx.textAlign = "center";
+        }
+    }
+
+    // ── Game over ───────────────────────────────────────────────────────────
+
+    private drawGameOver(ctx: CanvasRenderingContext2D, W: number, H: number) {
+        const gs = this.gameState!;
+
+        if (gs.winnerId) {
+            const winner = this.players[gs.winnerId];
+            ctx.fillStyle = "#4ade80";
+            ctx.font = "bold 30px Georgia, serif";
+            ctx.textAlign = "center";
+            ctx.fillText(`🏆 ${winner?.name || "Qualcuno"} ha indovinato!`, W / 2, H / 2 - 105);
+        }
+
+        if (gs.currentSong) {
+            ctx.fillStyle = "#e8c547";
+            ctx.font = "bold 24px Georgia, serif";
+            ctx.textAlign = "center";
+            ctx.fillText(`"${gs.currentSong.title}"`, W / 2, H / 2 - 50);
+            ctx.fillStyle = "#aaaaaa";
+            ctx.font = "19px Georgia, serif";
+            ctx.fillText(`di ${gs.currentSong.artist}`, W / 2, H / 2 - 15);
+        }
+
+        this.replayButton.draw(ctx, W / 2 - 75, H / 2 + 22, 150, 40);
+        this.exitButton.draw(ctx, W / 2 - 65, H / 2 + 78, 130, 42);
+    }
+
+    // ── Scoreboard ──────────────────────────────────────────────────────────
+
+    private drawScoreboard(ctx: CanvasRenderingContext2D, W: number) {
+        ctx.fillStyle = "#333";
+        ctx.font = "bold 15px Georgia, serif";
         ctx.textAlign = "left";
-        ctx.fillText("Players:", screenW - 250, 50);
-        
-        Object.values(this.players).forEach((player, index) => {
-            const yPos = 80 + (index * 30);
-            ctx.fillText(`${player.name}: ${(player as any).score || 0}`, screenW - 250, yPos);
+        ctx.fillText("Giocatori:", W - 190, 48);
+        Object.values(this.players).forEach((player, i) => {
+            ctx.fillStyle = "#777";
+            ctx.font = "14px Georgia, serif";
+            ctx.fillText(`${player.name}: ${(player as any).score ?? 0}`, W - 190, 68 + i * 22);
         });
         ctx.textAlign = "center";
     }
+
+    // ── Message handling ────────────────────────────────────────────────────
 
     handleMessage(message: any) {
         if (message.kind === "music_game_update") {
             const previousPhase = this.gameState?.phase;
             this.gameState = message.gameState;
-            this.lastGuessResult = message.lastGuess;
+            this.lastGuessResult = message.lastGuess ?? null;
+            this.isLoadingSong = false;
 
-            // When transitioning to playing phase, play the song
             if (previousPhase !== "playing" && this.gameState.phase === "playing") {
                 if (this.gameState.currentSong) {
-                    this.playAudioPreview();
+                    this.currentHints = generateHints(this.gameState.currentSong, this.artistKnownMode);
+                    this.playAudioPreview(this.gameState.currentSong.audioUrl);
                 }
+            }
+
+            if (this.gameState.phase === "game_over") {
+                this.audioElement.pause();
             }
         }
     }
 
-    private playAudioPreview() {
-        if (!this.gameState?.currentSong) return;
-        
+    private playAudioPreview(url: string) {
         try {
-            this.audioElement.src = this.gameState.currentSong.audioUrl;
-            this.audioElement.crossOrigin = "anonymous";
-            this.audioElement.play().catch(err => {
-                console.log("Audio playback info:", err.message);
-            });
+            this.audioElement.src = url;
+            this.audioElement.load();
+            this.audioElement.play().catch(err =>
+                console.warn("Audio play blocked:", err.message)
+            );
         } catch (err) {
-            console.log("Error playing audio:", err);
+            console.error("Error playing audio:", err);
         }
     }
 
     flushMessages(): any[] {
-        const messages = this.messageQueue;
+        const msgs = this.messageQueue;
         this.messageQueue = [];
-        return messages;
+        return msgs;
     }
 
     isFinished(): boolean {
