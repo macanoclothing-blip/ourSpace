@@ -38,7 +38,12 @@ if (process.env.OURSPACE_HTTPS_ENABLED) {
 const indexHTMLFile = fs.readFileSync(path.join(PUBLIC_FOLDER, 'index.html'));
 const indexJSFile = fs.readFileSync(path.join(PUBLIC_FOLDER, 'index.js'));
 httpServer.on('request', (req, res) => {
-    if (req.method === 'GET' && req.url === '/' || req.url === '/index.html') {
+    // API endpoint for fetching songs from Deezer
+    if (req.method === 'GET' && req.url?.startsWith('/api/songs/')) {
+        const genre = req.url.split('/')[3];
+        fetchSongsFromDeezer(genre, res);
+    }
+    else if (req.method === 'GET' && req.url === '/' || req.url === '/index.html') {
         res.writeHead(200, { 'Content-Type': 'text/html' });
         res.end(indexHTMLFile);
     }
@@ -51,6 +56,49 @@ httpServer.on('request', (req, res) => {
         res.end('404 Not Found');
     }
 });
+
+// Function to fetch songs from Deezer API
+function fetchSongsFromDeezer(genre: string, res: http.ServerResponse) {
+    const genreQueries: Record<string, string> = {
+        rock: 'rock',
+        pop: 'pop',
+        jazz: 'jazz',
+        hip_hop: 'hip hop',
+        classical: 'classical'
+    };
+
+    const query = genreQueries[genre] || 'music';
+    const deezerUrl = `https://api.deezer.com/search?q=${encodeURIComponent(query)}&limit=20`;
+
+    https.get(deezerUrl, (deezerRes) => {
+        let data = '';
+        deezerRes.on('data', chunk => {
+            data += chunk;
+        });
+        deezerRes.on('end', () => {
+            try {
+                const jsonData = JSON.parse(data);
+                const songs = jsonData.data
+                    ?.filter((track: any) => track.preview)
+                    .slice(0, 5)
+                    .map((track: any) => ({
+                        title: track.title,
+                        artist: track.artist.name,
+                        audioUrl: track.preview
+                    })) || [];
+
+                res.writeHead(200, { 'Content-Type': 'application/json' });
+                res.end(JSON.stringify(songs));
+            } catch (e) {
+                res.writeHead(500, { 'Content-Type': 'application/json' });
+                res.end(JSON.stringify({ error: 'Failed to parse Deezer response' }));
+            }
+        });
+    }).on('error', (err) => {
+        res.writeHead(500, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: 'Failed to fetch from Deezer' }));
+    });
+}
 
 // Creiamo un server WebSocket
 const wsServer = new WebSocketServer({ server: httpServer })
